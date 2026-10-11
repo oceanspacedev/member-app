@@ -1,0 +1,86 @@
+<?php
+
+return [
+
+    /*
+    | Nilai 1 poin dalam Rupiah. 100 poin = Rp1.000.
+    */
+    'point_value' => (int) env('LOYALTY_POINT_VALUE', 10),
+
+    /*
+    | Tier dihitung dari total belanja 12 bulan terakhir. Cashback diberikan
+    | dalam bentuk poin: belanja x cashback_percent / point_value.
+    */
+    'tiers' => [
+        // perks = benefit tambahan sesuai dokumen rancangan (ditampilkan di kartu tier aplikasi).
+        'silver' => ['label' => 'Silver', 'min_annual_spend' => 0, 'cashback_percent' => 2, 'perks' => []],
+        'gold' => ['label' => 'Gold', 'min_annual_spend' => 3_000_000, 'cashback_percent' => 5, 'perks' => ['Voucher ulang tahun']],
+        'platinum' => ['label' => 'Platinum', 'min_annual_spend' => 10_000_000, 'cashback_percent' => 8, 'perks' => ['Voucher ulang tahun', 'Promo & event eksklusif']],
+    ],
+
+    /*
+    | Zona waktu jam operasional outlet (data tetap disimpan dalam UTC).
+    */
+    'timezone' => env('LOYALTY_TIMEZONE', 'Asia/Jakarta'),
+
+    'brand_categories' => [
+        'culinary' => 'Kuliner & Resto',
+        'fastfood' => 'Fast Food & Snacks',
+        'retail' => 'Retail & Perhiasan',
+        'sports' => 'Sports & Lifestyle',
+    ],
+
+    /*
+    | Masa berlaku QR member (detik). QR berganti terus sehingga screenshot
+    | lama tidak bisa dipakai.
+    */
+    'qr_ttl' => (int) env('LOYALTY_QR_TTL', 120),
+
+    'otp' => [
+        'length' => 6,
+        'ttl' => 300,
+        'max_attempts' => 5,
+        'resend_cooldown' => 60,
+    ],
+
+    // Beli voucher dengan uang. xendit = Payment Session (halaman bayar Xendit: QRIS, VA, e-wallet).
+    // Pakai secret key Test Mode (xnd_development_…) selama uji coba; tidak ada uang sungguhan yang berpindah.
+    'payment' => [
+        'driver' => env('PAYMENT_DRIVER', 'xendit'),
+        'order_ttl' => 30, // menit sebelum tagihan kedaluwarsa
+        'xendit' => [
+            'url' => env('XENDIT_URL', 'https://api.xendit.co'),
+            'secret_key' => env('XENDIT_SECRET_KEY'),
+            'callback_token' => env('XENDIT_CALLBACK_TOKEN'),
+            // Opsional, harus HTTPS: halaman tujuan setelah bayar (mis. https://domain-kamu/bayar-selesai).
+            'return_url' => env('XENDIT_RETURN_URL'),
+            'timeout' => 15,
+        ],
+    ],
+
+    'whatsapp' => [
+        // waghub = dikirim lewat WAGHub; log = hanya ditulis ke storage/logs (development/testing)
+        'driver' => env('WHATSAPP_DRIVER', 'log'),
+
+        'waghub' => [
+            'url' => env('WAG_URL', 'https://waghub.mekayastudio.com'),
+            'token' => env('WAG_TOKEN', ''),
+            'timeout' => (int) env('WAG_TIMEOUT', 10),
+        ],
+
+        // Hanya di APP_ENV=local: nomor akun demo seeder tidak dikirimi WhatsApp sungguhan.
+        'demo_numbers' => array_values(array_filter(explode(',', (string) env('WHATSAPP_DEMO_NUMBERS', '6281200000001,6281200000002,6281200000003')))),
+    ],
+
+    /*
+    | Akun admin awal panel web (dibuat/diperbarui oleh seeder). Bisa masuk lewat
+    | email + password ini, atau WhatsApp OTP ke nomor admin demo.
+    */
+    'admin' => [
+        'email' => env('ADMIN_EMAIL'),
+        'password' => env('ADMIN_PASSWORD'),
+    ],
+
+    'google_client_ids' => array_values(array_filter(explode(',', (string) env('GOOGLE_CLIENT_IDS', '')))),
+
+];

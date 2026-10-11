@@ -1,0 +1,24 @@
+# --- Rahasia & data lokal: JANGAN pernah di-commit ---
+# Token WAGHub, key Xendit, password admin, APP_KEY
+backend/.env
+backend/.env.*
+!backend/.env.example
+mobile/.env*.local
+# Database lokal (berisi data member)
+backend/database/*.sqlite*
+
+# --- Unggahan pengguna (foto profil, logo/foto/gambar dari panel) ---
+backend/public/media/avatars/
+backend/public/media/brands/
+backend/public/media/outlets/
+backend/public/media/promos/
+
+# --- Dependensi & hasil build (dipasang ulang lewat composer/npm) ---
+node_modules/
+backend/vendor/
+backend/public/build/
+
+# --- Alat & sistem operasi ---
+.claude/settings.local.json
+.DS_Store
+Thumbs.db
