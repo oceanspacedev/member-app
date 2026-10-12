@@ -54,6 +54,8 @@ Repositori ini berisi dua aplikasi yang memakai **satu database yang sama**:
 
 - Kelola **Brand, Outlet, Promo/Voucher, Member**, lihat **Riwayat poin, Voucher, Pembayaran voucher**.
 - Aksi **Catat belanja** (struk manual) dan **Sesuaikan poin** per member.
+- **Klaim struk**: antrean foto struk yang perlu dicek petugas, lengkap dengan hasil baca AI dan alasan ditandai.
+- **API partner POS**: buat/cabut API key per outlet agar POS pihak ketiga bisa memvalidasi voucher member.
 - **Aktivitas member**: login terakhir, terakhir aktif, perangkat (iPhone/Android/Web), status login, filter "Aktif hari ini / 7 hari / Sedang login / Belum pernah login", aksi **Keluarkan dari semua perangkat** dan **Hapus akun**.
 - **Pengguna panel + Peran & izin** (Filament Shield), **Log aplikasi** (Log Viewer), **Antrean** (Laravel Horizon).
 - Login dengan email + password atau OTP WhatsApp.
@@ -188,6 +190,13 @@ Semua nilai rahasia **hanya** ada di `backend/.env` — file ini tidak ikut ke G
 | `APP_URL` | URL backend, mis. `http://localhost:8010` |
 | `LOYALTY_POINT_VALUE` | Nilai 1 poin dalam rupiah (default `10`) |
 | `LOYALTY_QR_TTL` | Masa berlaku QR member/voucher dalam detik (default `120`) |
+| `GEMINI_API_KEY` | Kunci API Gemini untuk membaca foto struk otomatis. Kosong = semua struk diperiksa admin |
+| `LOYALTY_RECEIPT_READER` | `gemini` (baca otomatis) atau `none` |
+| `LOYALTY_RECEIPT_MODEL` | Model Gemini pembaca struk (default `gemini-3.8-flash`) |
+| `LOYALTY_RECEIPT_AUTO_MAX_AMOUNT` | Total struk di atas ini selalu diperiksa admin (default `2000000`) |
+| `LOYALTY_RECEIPT_QUEUE` | `true` = pemeriksaan lewat antrean (butuh worker: `php artisan queue:work` atau Horizon); `false` = langsung setelah respons (default) |
+| `LOYALTY_RECEIPT_MIN_CONFIDENCE` | Keyakinan baca minimal agar bisa disetujui otomatis (default `0.85`) |
+| `LOYALTY_RECEIPT_MAX_AGE_DAYS`, `LOYALTY_RECEIPT_DAILY_LIMIT` | Umur struk maksimal (default `7` hari) dan batas kirim struk per member per hari (default `5`) |
 | `WHATSAPP_DRIVER` | `log` (OTP hanya ditulis ke log) atau `waghub` (dikirim sungguhan) |
 | `WAG_URL`, `WAG_TOKEN` | Alamat dan token WAGHub |
 | `WHATSAPP_DEMO_NUMBERS` | Nomor akun demo; di `APP_ENV=local` OTP-nya hanya ke log |
@@ -412,6 +421,55 @@ Akun kasir/admin tidak bisa menghapus dirinya sendiri dari aplikasi; akun admin 
 
 ---
 
+### 9. Poin dari foto struk (outlet dengan POS pihak ketiga)
+
+Tanpa akses ke POS outlet, foto struk adalah buktinya. Sistem yang memeriksa, bukan member atau admin.
+
+```mermaid
+flowchart TD
+    M["Member: Foto Struk → kirim<br/>(tanpa pilih outlet)"] --> R["Sistem membaca foto (Gemini):<br/>outlet, nomor, tanggal, total,<br/>jenis foto, tanda editan"]
+    R --> C{"Aturan<br/>(ReceiptVerifier)"}
+    C -- "bukan struk / tidak terbaca /<br/>> 7 hari / sudah dapat poin" --> X["Ditolak otomatis<br/>alasan jelas, bisa foto ulang"]
+    C -- "tanda editan, screenshot/foto layar,<br/>keyakinan rendah, outlet tak dikenal,<br/>total besar, klaim beruntun" --> A["Antrean admin<br/>data sudah terisi + alasannya"]
+    C -- "semua lolos" --> P["Poin masuk otomatis<br/>+ WhatsApp"]
+    R -. "pembaca gagal" .-> A
+```
+
+Nomor struk unik per outlet, termasuk terhadap transaksi kasir, jadi satu struk hanya bisa mendapat poin sekali. Aplikasi menunggu hasil di layar yang sama; struk yang diserahkan ke admin dikabari lewat WhatsApp.
+
+Pemeriksaannya otomatis penuh. Admin hanya menangani struk yang ditandai AI (mis. foto layar, gambar buatan/mockup, keyakinan baca di bawah `LOYALTY_RECEIPT_MIN_CONFIDENCE`), di menu **Member & poin → Klaim struk**. Gangguan sesaat Gemini (429/5xx) dicoba ulang otomatis; bila tetap gagal, struk diserahkan ke admin.
+
+> **Antrean:** dengan `LOYALTY_RECEIPT_QUEUE=true`, worker harus berjalan. Worker membaca `.env` sekali saat mulai, jadi setelah mengubah `.env` (mis. mengganti `GEMINI_API_KEY`) jalankan `php artisan queue:restart` (atau `horizon:terminate`).
+
+### 10. Voucher di outlet dengan POS pihak ketiga (API partner)
+
+Outlet yang memakai POS lain (iSeller, Moka, Majoo, Olsera, …) memvalidasi voucher member ke Ocean Space lewat API partner. Admin membuat API key per outlet di **Akses & sistem → API partner POS** (format `osk_…`, bisa dicabut kapan saja), lalu memberikannya ke vendor POS outlet tersebut.
+
+```mermaid
+sequenceDiagram
+    actor M as Member
+    participant P as POS outlet
+    participant B as Backend
+
+    M->>P: Sebutkan / tunjukkan kode voucher (ABCDE-FGHJK)
+    P->>B: POST /partner/v1/vouchers/check {code, amount}
+    B-->>P: valid, problem (alasan), discount
+    P->>P: Pasang potongan, member bayar
+    P->>B: POST /partner/v1/vouchers/redeem {code, amount, reference}
+    B->>B: Voucher = terpakai (idempoten per nomor struk)
+    B-->>P: discount, pay_amount
+    opt Transaksi di-void
+        P->>B: POST /partner/v1/vouchers/cancel {code, reference}
+        B-->>P: Voucher aktif lagi
+    end
+```
+
+- Voucher selalu dicek terhadap outlet pemilik key, jadi voucher khusus brand lain otomatis ditolak.
+- `redeem` aman diulang: kode + nomor struk yang sama mengembalikan hasil yang sama (koneksi POS putus tidak membuat voucher terpakai dua kali). Satu struk satu voucher.
+- `cancel` hanya untuk outlet dan nomor struk yang sama, maksimal 24 jam setelah dipakai.
+- Respons hanya berisi data voucher (kode, judul, nilai, minimal belanja, brand, masa berlaku), tanpa data pribadi member.
+- Poin member dari transaksi ini didapat lewat foto struk (alur 9).
+
 ## Panel admin
 
 Buka `http://localhost:8010/admin`. Hanya akun berjenis **admin** yang bisa masuk; menu yang terlihat bergantung pada perannya.
@@ -424,6 +482,8 @@ Buka `http://localhost:8010/admin`. Hanya akun berjenis **admin** yang bisa masu
 | Member & poin → Riwayat poin | Semua transaksi poin (hanya-baca) |
 | Member & poin → Voucher | Voucher terbit/terpakai per outlet + total potongan (rekonsiliasi antar-entitas) |
 | Member & poin → Pembayaran voucher | Tagihan Xendit, status, total, tombol **Cek status** |
+| Member & poin → Klaim struk | Foto struk member, hasil baca AI, alasan ditandai; setujui atau tolak struk yang perlu dicek |
+| Akses & sistem → API partner POS | API key per outlet untuk POS pihak ketiga, terakhir dipakai, cabut key |
 | Akses & sistem → Pengguna panel | Akun admin + perannya, *Jadikan admin dari member*, *Cabut akses* |
 | Akses & sistem → Peran & izin | Buat peran dan centang izinnya per menu, widget, dan izin khusus |
 | Akses & sistem → Log aplikasi / Antrean (Horizon) | Log Viewer dan dasbor Horizon |
@@ -451,11 +511,23 @@ Semua endpoint di bawah prefix `/api/v1`. Endpoint member memakai token Sanctum 
 | GET | `/me/vouchers?status=active\|history`, `/me/vouchers/{id}`, `/me/vouchers/{id}/qr` | Member |
 | POST | `/promos/{id}/vouchers` (klaim gratis / tukar poin) | Member |
 | POST · GET | `/promos/{id}/orders` (beli dengan uang) · `/me/orders/{id}` (status) | Member |
+| GET · POST · GET | `/me/receipts` (riwayat) · `/me/receipts` (multipart `photo`, maks 8 MB) · `/me/receipts/{id}` (status, dicek berkala selama `checking`) | Member |
 | POST | `/pos/scan`, `/pos/earn`, `/pos/redeem`, `/pos/vouchers/check`, `/pos/vouchers/redeem` | Kasir/admin |
 | POST | `/admin/brands/{id}/logo`, `/admin/outlets/{id}/photo`, `/admin/promos/{id}/image` | Admin |
 | POST | `/payments/xendit/webhook` (header `x-callback-token`) | Xendit |
 
-Endpoint `/pos/*` yang sama nantinya bisa dipanggil langsung oleh sistem POS tiap brand.
+### API partner POS
+
+Prefix `/api/partner/v1`, header `Authorization: Bearer osk_…` (API key per outlet dari panel admin), dibatasi 120 request/menit per key. Alurnya di [alur 10](#10-voucher-di-outlet-dengan-pos-pihak-ketiga-api-partner).
+
+| Method | Endpoint | Fungsi |
+|---|---|---|
+| GET | `/outlet` | Tes API key: outlet & brand pemilik key |
+| POST | `/vouchers/check` `{code, amount?}` | Cek voucher tanpa mengubah data: `valid`, `problem`, `discount` |
+| POST | `/vouchers/redeem` `{code, amount, reference}` | Pakai voucher untuk satu nomor struk (idempoten) |
+| POST | `/vouchers/cancel` `{code, reference}` | Batalkan pemakaian (outlet & struk yang sama, ≤ 24 jam) |
+
+Dokumentasi lengkap dengan contoh request ada di **`/docs/api`** (Scramble), untuk super admin atau peran dengan izin *Buka dokumentasi API*. Bagikan ke vendor POS bersama API key-nya.
 
 ---
 
@@ -469,7 +541,7 @@ cd backend && php artisan test
 cd mobile && npx tsc --noEmit && npx expo lint
 ```
 
-Tes backend (89 tes) mencakup login OTP & WAGHub, poin & level, kasir (idempoten per struk), QR bertanda tangan, voucher (klaim, tukar poin, ulang tahun, kuota, level, pemakaian di kasir), pembayaran Xendit (respons dipalsukan — tidak ada request keluar), panel admin, aktivitas member & hapus akun, serta peran & izin.
+Tes backend (117 tes) mencakup login OTP & WAGHub, poin & level, kasir (idempoten per struk), QR bertanda tangan, voucher (klaim, tukar poin, ulang tahun, kuota, level, pemakaian di kasir), klaim foto struk (pembacaan Gemini dipalsukan, aturan otomatis), API partner POS, pembayaran Xendit (respons dipalsukan — tidak ada request keluar), panel admin, aktivitas member & hapus akun, serta peran & izin.
 
 ---
 
@@ -494,6 +566,8 @@ Tes backend (89 tes) mencakup login OTP & WAGHub, poin & level, kasir (idempoten
 - Webhook pembayaran diverifikasi token dan status selalu dicek ulang ke Xendit.
 - Panel memakai peran & izin (Shield); akun tidak bisa mengubah perannya sendiri, dan hanya super admin yang bisa memberi peran super admin.
 - Transaksi poin dan voucher idempoten per nomor struk.
+- API partner POS memakai key per outlet yang disimpan ter-hash, bisa dicabut, dan dibatasi frekuensinya; respons tidak memuat data pribadi member.
+- Foto struk diperiksa AI terhadap tanda editan, foto layar, dan gambar buatan; yang meragukan selalu ke petugas, tidak pernah disetujui otomatis.
 
 ---
 
@@ -503,7 +577,8 @@ Tes backend (89 tes) mencakup login OTP & WAGHub, poin & level, kasir (idempoten
 - [x] Fase 2 — level member, voucher (klaim, tukar poin, ulang tahun, beli dengan uang via Xendit)
 - [ ] Pembagian uang pembelian voucher ke tiap PT/CV (Xendit xenPlatform: sub-account + split rule) — menunggu aturan finance
 - [ ] Login Google di aplikasi (backend sudah siap, butuh Client ID & development build)
-- [ ] Fase 3 — integrasi langsung POS kasir tiap brand, notifikasi push promo berbasis lokasi (geo-fencing)
+- [x] Poin dari foto struk (dibaca otomatis Gemini) dan API partner POS untuk validasi voucher di POS pihak ketiga
+- [ ] Fase 3 — integrasi langsung POS kasir tiap brand (pencatatan poin otomatis dari POS), notifikasi push promo berbasis lokasi (geo-fencing)
 
 ---
 

@@ -92,6 +92,12 @@ class Voucher extends Model
         return $this->belongsTo(User::class, 'cashier_id');
     }
 
+    /** API key POS pihak ketiga yang memakai voucher ini (null = dipakai lewat kasir Ocean Space). */
+    public function partnerKey(): BelongsTo
+    {
+        return $this->belongsTo(PartnerKey::class);
+    }
+
     public function status(): string
     {
         return match (true) {

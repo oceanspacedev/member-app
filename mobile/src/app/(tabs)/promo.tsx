@@ -19,7 +19,7 @@ const JENIS: Record<Jenis, { title: string; chip: string; empty: string; match: 
 };
 
 export default function PromoScreen() {
-  const { loyalty } = useSession();
+  const { status, loyalty } = useSession();
   const params = useLocalSearchParams<{ jenis?: string }>();
   const [category, setCategory] = useState<string | null>(null);
   const [jenis, setJenis] = useState<Jenis | null>(asJenis(params.jenis));
@@ -45,7 +45,7 @@ export default function PromoScreen() {
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={`Voucher Saya, ${loyalty?.active_vouchers ?? 0} aktif`}
-            onPress={() => router.push('/vouchers')}
+            onPress={() => router.push(status === 'guest' ? '/login' : '/vouchers')}
             style={styles.myVouchers}>
             <Icon name="ticket" size={18} color={colors.primary} />
             <Txt weight="bold" size={13} color={colors.primary}>

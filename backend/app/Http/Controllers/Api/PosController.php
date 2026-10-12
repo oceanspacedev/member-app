@@ -7,6 +7,7 @@ use App\Http\Resources\PointTransactionResource;
 use App\Http\Resources\VoucherResource;
 use App\Models\Outlet;
 use App\Models\User;
+use App\Models\Voucher;
 use App\Services\LoyaltyService;
 use App\Services\MemberQr;
 use App\Services\VoucherQr;
@@ -75,7 +76,7 @@ class PosController extends Controller
             'outlet_id' => ['nullable', 'integer'],
         ]);
 
-        $voucher = $qr->resolve($request->string('qr'));
+        $voucher = $this->voucher($request->string('qr'), $qr, $vouchers);
         $problem = null;
 
         try {
@@ -104,7 +105,7 @@ class PosController extends Controller
             'outlet_id' => ['nullable', 'integer'],
         ]);
 
-        $voucher = $qr->resolve($data['qr']);
+        $voucher = $this->voucher($data['qr'], $qr, $vouchers);
         $result = $vouchers->redeem($voucher, $this->outlet($request), $data['amount'], $data['reference'], $request->user());
         $used = $result['voucher'];
 
@@ -117,6 +118,19 @@ class PosController extends Controller
             'transaction' => $result['earn'] ? new PointTransactionResource($result['earn']->load('outlet.brand')) : null,
             'loyalty' => $loyalty->summary($used->user->fresh()),
         ]);
+    }
+
+    /**
+     * Voucher dari QR lama (LCV1....) atau dari kode yang diketik kasir (ABCDE-FGHJK).
+     */
+    private function voucher(string $input, VoucherQr $qr, VoucherService $vouchers): Voucher
+    {
+        if (str_starts_with(trim($input), VoucherQr::PREFIX.'.')) {
+            return $qr->resolve($input);
+        }
+
+        return $vouchers->findByCode($input)?->load('user')
+            ?? throw ValidationException::withMessages(['qr' => 'Kode voucher tidak ditemukan.']);
     }
 
     /**

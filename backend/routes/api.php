@@ -3,10 +3,13 @@
 use App\Http\Controllers\Api\Admin\MediaController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DirectoryController;
+use App\Http\Controllers\Api\Partner\VoucherController as PartnerVoucherController;
 use App\Http\Controllers\Api\PosController;
 use App\Http\Controllers\Api\ProfileController;
+use App\Http\Controllers\Api\ReceiptController;
 use App\Http\Controllers\Api\VoucherController;
 use App\Http\Controllers\Api\VoucherOrderController;
+use App\Http\Middleware\AuthenticatePartnerKey;
 use App\Http\Middleware\TrackLastSeen;
 use Illuminate\Support\Facades\Route;
 
@@ -39,6 +42,11 @@ Route::prefix('v1')->group(function () {
         Route::get('me/qr', [ProfileController::class, 'qr']);
         Route::get('me/points', [ProfileController::class, 'points']);
 
+        // Poin dari foto struk (outlet dengan POS pihak ketiga)
+        Route::get('me/receipts', [ReceiptController::class, 'index']);
+        Route::post('me/receipts', [ReceiptController::class, 'store'])->middleware('throttle:10,1');
+        Route::get('me/receipts/{receiptClaim}', [ReceiptController::class, 'show']);
+
         // Voucher Saya
         Route::get('me/vouchers', [VoucherController::class, 'index']);
         Route::get('me/vouchers/{voucher}', [VoucherController::class, 'show']);
@@ -65,4 +73,13 @@ Route::prefix('v1')->group(function () {
             Route::post('vouchers/redeem', [PosController::class, 'voucherRedeem']);
         });
     });
+});
+
+// API partner POS (iSeller, Moka, Majoo, Olsera, ...): Ocean Space memvalidasi voucher member.
+// Autentikasi dengan API key per outlet yang dibuat di panel admin (Akses & sistem → API partner POS).
+Route::prefix('partner/v1')->middleware([AuthenticatePartnerKey::class, 'throttle:partner'])->group(function () {
+    Route::get('outlet', [PartnerVoucherController::class, 'outlet']);
+    Route::post('vouchers/check', [PartnerVoucherController::class, 'check']);
+    Route::post('vouchers/redeem', [PartnerVoucherController::class, 'redeem']);
+    Route::post('vouchers/cancel', [PartnerVoucherController::class, 'cancel']);
 });

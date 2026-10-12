@@ -4,7 +4,6 @@ use Opcodes\LogViewer\Enums\SortingMethod;
 use Opcodes\LogViewer\Enums\SortingOrder;
 use Opcodes\LogViewer\Enums\Theme;
 use Opcodes\LogViewer\Http\Middleware\AuthorizeLogViewer;
-use Opcodes\LogViewer\Http\Middleware\EnsureFrontendRequestsAreStateful;
 
 return [
 
@@ -118,8 +117,11 @@ return [
     |
     */
 
+    // API dipanggil dari halaman /log-viewer itu sendiri, jadi cukup sesi 'web' biasa.
+    // EnsureFrontendRequestsAreStateful bawaan mencocokkan Referer dengan APP_URL (termasuk port),
+    // sehingga membuka panel di port lain (mis. :8000 vs APP_URL :8010) berujung 403.
     'api_middleware' => [
-        EnsureFrontendRequestsAreStateful::class,
+        'web',
         AuthorizeLogViewer::class,
     ],
 

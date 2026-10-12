@@ -151,6 +151,25 @@ export type PointTransaction = {
   created_at: string;
 };
 
+/** Klaim poin dari foto struk (outlet dengan POS pihak ketiga), diperiksa otomatis oleh sistem. */
+export type ReceiptClaim = {
+  id: number;
+  /** Dibaca dari struk; null selama belum terbaca. */
+  outlet?: { id: number; name: string } | null;
+  receipt_number: string | null;
+  amount: number | null;
+  purchased_at: string | null;
+  status: 'pending' | 'approved' | 'rejected';
+  status_label: string;
+  /** Sistem masih membaca struk (biasanya beberapa detik). */
+  checking: boolean;
+  /** Sistem menyerahkan struk ke petugas; hasilnya dikirim lewat WhatsApp. */
+  in_review: boolean;
+  reject_reason: string | null;
+  points?: number | null;
+  created_at: string;
+};
+
 export type Paginated<T> = {
   data: T[];
   meta: { current_page: number; last_page: number; total: number };

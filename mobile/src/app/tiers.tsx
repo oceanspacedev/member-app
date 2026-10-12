@@ -13,13 +13,13 @@ import { useApi } from '@/lib/use-api';
 
 /** Level member (Silver/Gold/Platinum): cara kerja dan benefit tiap level. */
 export default function TiersScreen() {
-  const { loyalty } = useSession();
+  const { status, loyalty } = useSession();
   const { data } = useApi<{ point_value: number; tiers: Tier[] }>('/tiers');
   const tiers = data?.tiers ?? [];
   const currentIndex = tiers.findIndex((t) => t.key === loyalty?.tier);
 
   const how: [IconName, string][] = [
-    ['receipt', 'Tunjukkan QR member setiap belanja — poin masuk sesuai cashback level kamu.'],
+    ['receipt', 'Foto struk setiap belanja di outlet Ocean Space. Struk diperiksa otomatis dan poin langsung masuk sesuai cashback level kamu.'],
     ['coins', `1 poin = ${rupiah(data?.point_value ?? 10)}. Tukar di kasir atau dengan voucher di semua brand grup.`],
     ['crown', 'Level dihitung dari total belanja 12 bulan terakhir dan naik otomatis.'],
   ];
@@ -69,7 +69,11 @@ export default function TiersScreen() {
             ))}
           </View>
 
-          <Button title="Lihat riwayat poin" variant="secondary" onPress={() => router.push('/points')} />
+          {status === 'guest' ? (
+            <Button title="Masuk untuk mulai kumpulkan poin" variant="brass" onPress={() => router.push('/login')} />
+          ) : (
+            <Button title="Lihat riwayat poin" variant="secondary" onPress={() => router.push('/points')} />
+          )}
         </ScrollView>
       )}
     </SafeAreaView>

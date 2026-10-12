@@ -2,7 +2,8 @@
 
 namespace Tests\Feature;
 
-use App\Filament\Pages\Auth\OtpLogin;
+use App\Filament\Pages\Auth\Login;
+use App\Filament\Pages\Auth\WhatsAppLogin;
 use App\Filament\Resources\Outlets\Pages\EditOutlet;
 use App\Filament\Resources\Promos\Pages\CreatePromo;
 use App\Filament\Resources\Users\Pages\EditUser;
@@ -40,6 +41,9 @@ class AdminPanelTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        // Login WhatsApp di panel hanya muncul bila WAGHub dikonfigurasi; pengirimnya tetap palsu di bawah.
+        config(['loyalty.whatsapp.waghub.token' => 'token-tes']);
 
         $this->app->instance(WhatsAppSender::class, new class($this->sent) implements WhatsAppSender
         {
@@ -80,19 +84,37 @@ class AdminPanelTest extends TestCase
         $this->actingAs($this->admin())->get('/admin')->assertOk()->assertSee('Ocean Space');
     }
 
+    public function test_whatsapp_login_is_hidden_until_waghub_is_configured(): void
+    {
+        config(['loyalty.whatsapp.waghub.token' => '']);
+
+        $this->get('/admin/login')->assertOk()->assertDontSee('Atau masuk dengan');
+        $this->get('/admin/login/whatsapp')->assertRedirect('/admin/login');
+    }
+
+    public function test_login_page_links_to_separate_whatsapp_login_page(): void
+    {
+        $this->get('/admin/login')->assertOk()
+            ->assertSee('Atau masuk dengan')
+            ->assertSee(route('filament.admin.auth.whatsapp-login'), escape: false);
+
+        $this->get('/admin/login/whatsapp')->assertOk()->assertSee('Masuk dengan WhatsApp');
+        $this->actingAs($this->admin())->get('/admin/login/whatsapp')->assertRedirect('/admin');
+    }
+
     public function test_admin_logs_in_with_whatsapp_otp(): void
     {
         $admin = $this->admin();
 
-        $page = Livewire::test(OtpLogin::class)
-            ->fillForm(['method' => 'whatsapp', 'phone' => '0812-0000-0003'])
-            ->call('authenticate')
+        $page = Livewire::test(WhatsAppLogin::class)
+            ->fillForm(['phone' => '0812-0000-0003'])
+            ->call('submit')
             ->assertSet('awaitingOtp', true);
 
         $this->assertSame('6281200000003', $this->sent[0]['phone']);
 
         $page->fillForm(['code' => $this->lastCode()])
-            ->call('authenticate')
+            ->call('submit')
             ->assertRedirect();
 
         $this->assertAuthenticatedAs($admin);
@@ -102,16 +124,16 @@ class AdminPanelTest extends TestCase
     {
         $admin = $this->admin();
 
-        $page = Livewire::test(OtpLogin::class)
-            ->fillForm(['method' => 'whatsapp', 'phone' => '081200000003'])
-            ->call('authenticate');
+        $page = Livewire::test(WhatsAppLogin::class)
+            ->fillForm(['phone' => '081200000003'])
+            ->call('submit');
 
         // Ganti kode yang terkirim dengan kode berawalan 0.
         OtpCode::where('phone', '6281200000003')->latest('id')->first()
             ->forceFill(['code_hash' => Hash::make('012345')])->save();
 
         $page->fillForm(['code' => '012345'])
-            ->call('authenticate')
+            ->call('submit')
             ->assertHasNoFormErrors()
             ->assertRedirect();
 
@@ -122,12 +144,12 @@ class AdminPanelTest extends TestCase
     {
         User::factory()->create(['phone' => '6281299990000']);
 
-        Livewire::test(OtpLogin::class)
-            ->fillForm(['method' => 'whatsapp', 'phone' => '081299990000'])
-            ->call('authenticate')
+        Livewire::test(WhatsAppLogin::class)
+            ->fillForm(['phone' => '081299990000'])
+            ->call('submit')
             ->assertSet('awaitingOtp', true)
             ->fillForm(['code' => '123456'])
-            ->call('authenticate')
+            ->call('submit')
             ->assertHasFormErrors(['code']);
 
         $this->assertSame([], $this->sent);
@@ -139,8 +161,7 @@ class AdminPanelTest extends TestCase
         $admin = $this->admin();
         $admin->forceFill(['email' => 'admin@lifestyleclub.test', 'password' => 'rahasia-panel-123'])->save();
 
-        Livewire::test(OtpLogin::class)
-            ->assertSet('data.method', 'email')
+        Livewire::test(Login::class)
             ->fillForm(['email' => 'admin@lifestyleclub.test', 'password' => 'rahasia-panel-123'])
             ->call('authenticate')
             ->assertHasNoFormErrors()
@@ -155,12 +176,12 @@ class AdminPanelTest extends TestCase
         $admin->forceFill(['email' => 'admin@lifestyleclub.test', 'password' => 'rahasia-panel-123'])->save();
         User::factory()->create(['email' => 'member@contoh.com', 'password' => 'password-member-1']);
 
-        Livewire::test(OtpLogin::class)
+        Livewire::test(Login::class)
             ->fillForm(['email' => 'admin@lifestyleclub.test', 'password' => 'salah'])
             ->call('authenticate')
             ->assertHasFormErrors(['email']);
 
-        Livewire::test(OtpLogin::class)
+        Livewire::test(Login::class)
             ->fillForm(['email' => 'member@contoh.com', 'password' => 'password-member-1'])
             ->call('authenticate')
             ->assertHasFormErrors(['email']);

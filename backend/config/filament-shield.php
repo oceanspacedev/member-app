@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 use App\Filament\Resources\PanelUsers\PanelUserResource;
+use App\Filament\Resources\PartnerKeys\PartnerKeyResource;
 use App\Filament\Resources\PointTransactions\PointTransactionResource;
+use App\Filament\Resources\ReceiptClaims\ReceiptClaimResource;
 use App\Filament\Resources\Users\UserResource;
 use App\Filament\Resources\VoucherOrders\VoucherOrderResource;
 use App\Filament\Resources\Vouchers\VoucherResource;
@@ -208,6 +210,10 @@ return [
             VoucherResource::class => ['viewAny', 'view'],
             // Pembayaran hanya-baca: status dari payment gateway.
             VoucherOrderResource::class => ['viewAny', 'view'],
+            // Klaim struk: dilihat lalu disetujui/ditolak (update); dikirim dari aplikasi member.
+            ReceiptClaimResource::class => ['viewAny', 'view', 'update'],
+            // API key POS: dibuat & dicabut (key tidak bisa diedit atau dilihat ulang).
+            PartnerKeyResource::class => ['viewAny', 'create', 'update'],
         ],
         // Pengguna panel memakai izin khusus Manage:PanelUser, bukan izin model User.
         'exclude' => [
@@ -276,6 +282,7 @@ return [
         'record:purchase' => 'Catat belanja manual',
         'view:log_viewer' => 'Buka log aplikasi',
         'view:horizon' => 'Buka Laravel Horizon',
+        'view:api_docs' => 'Buka dokumentasi API',
     ],
 
     /*

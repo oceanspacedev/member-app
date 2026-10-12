@@ -6,13 +6,14 @@ import { useState } from 'react';
 import { ActivityIndicator, Modal, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { DeleteAccountSheet } from '@/components/delete-account-sheet';
+import { GuestPrompt } from '@/components/guest-prompt';
 import { Icon, type IconName } from '@/components/icon';
 import { UserAvatar } from '@/components/media';
+import { MenuGroup, type MenuRowItem } from '@/components/menu-row';
 import { Banner, Txt } from '@/components/ui';
 import { colors } from '@/constants/theme';
 import { api, ApiError, upload } from '@/lib/api';
-import { longDate, number, phone } from '@/lib/format';
+import { number } from '@/lib/format';
 import { useSession } from '@/lib/session';
 import type { User } from '@/lib/types';
 
@@ -24,11 +25,45 @@ const PICKER_OPTIONS: ImagePicker.ImagePickerOptions = {
 };
 
 export default function ProfileScreen() {
+  const { status } = useSession();
+  return status === 'guest' ? <GuestProfile /> : <MemberProfile />;
+}
+
+/** Tamu: ajakan masuk, plus halaman publik yang tetap bisa dibuka tanpa akun. */
+function GuestProfile() {
+  const insets = useSafeAreaInsets();
+  const focused = useIsFocused();
+  const rows: MenuRowItem[] = [
+    { icon: 'crown', label: 'Level & benefit member', go: () => router.push('/tiers') },
+    { icon: 'store', label: 'Outlet terdekat', go: () => router.navigate('/outlets') },
+    { icon: 'grid', label: 'Brand grup', go: () => router.push('/brands') },
+  ];
+
+  return (
+    <View style={{ flex: 1 }}>
+      {focused && <StatusBar style="light" />}
+      <ScrollView contentContainerStyle={{ paddingBottom: 48 }}>
+        <View style={[styles.header, { paddingTop: insets.top + 8, paddingBottom: 8 }]}>
+          <GuestPrompt
+            dark
+            icon="user"
+            title="Kamu masuk sebagai tamu"
+            text="Masuk dengan nomor WhatsApp untuk kumpulkan poin dari struk belanja dan simpan voucher di semua brand Ocean Space."
+          />
+        </View>
+        <View style={styles.body}>
+          <MenuGroup title="Jelajahi" rows={rows} />
+        </View>
+      </ScrollView>
+    </View>
+  );
+}
+
+function MemberProfile() {
   const { user, loyalty, signOut, setUser } = useSession();
   const insets = useSafeAreaInsets();
   const focused = useIsFocused();
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [deleteOpen, setDeleteOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [avatarMessage, setAvatarMessage] = useState<{ tone: 'info' | 'error'; text: string } | null>(null);
   // Aksi yang menunggu sheet selesai menutup (iOS).
@@ -125,24 +160,21 @@ export default function ProfileScreen() {
     { label: 'Level', value: loyalty?.tier_label ?? user.tier, go: () => router.push('/tiers') },
   ];
 
-  const sections: { title: string; rows: Row[] }[] = [
+  const sections: { title: string; rows: MenuRowItem[] }[] = [
     {
-      title: 'Data diri',
-      rows: [
-        { icon: 'phone', label: 'Nomor WhatsApp', value: phone(user.phone) },
-        { icon: 'mail', label: 'Email', value: user.email ?? 'Belum diisi' },
-        { icon: 'gift', label: 'Tanggal lahir', value: user.birth_date ? longDate(user.birth_date) : 'Belum diisi' },
-      ],
+      title: 'Akun',
+      rows: [{ icon: 'user', label: 'Akun & data diri', go: () => router.push('/account') }],
     },
     {
       title: 'Aktivitas',
       rows: [
         { icon: 'ticket', label: 'Voucher Saya', go: () => router.push('/vouchers') },
         { icon: 'receipt', label: 'Riwayat poin', go: () => router.push('/points') },
+        { icon: 'camera', label: 'Kirim struk belanja', value: 'Foto struk untuk klaim poin', go: () => router.navigate('/struk') },
         { icon: 'crown', label: 'Level & benefit member', go: () => router.push('/tiers') },
       ],
     },
-    ...(isStaff ? [{ title: 'Kasir', rows: [{ icon: 'scan' as IconName, label: 'Mode Kasir', value: 'Scan QR member & voucher', go: () => router.push('/cashier') }] }] : []),
+    ...(isStaff ? [{ title: 'Kasir', rows: [{ icon: 'scan' as IconName, label: 'Mode Kasir', value: 'Scan QR member & cek kode voucher', go: () => router.push('/cashier') }] }] : []),
     {
       title: 'Lainnya',
       rows: [
@@ -213,16 +245,7 @@ export default function ProfileScreen() {
           {isBirthdayMonth && <Banner tone="gold" icon="gift" text="Selamat ulang tahun! Cek Voucher Saya untuk hadiah ulang tahunmu." />}
 
           {sections.map((section) => (
-            <View key={section.title} style={{ gap: 8 }}>
-              <Txt weight="extrabold" size={12} color={colors.muted} style={{ letterSpacing: 0.8, paddingHorizontal: 4 }} accessibilityRole="header">
-                {section.title.toUpperCase()}
-              </Txt>
-              <View style={styles.group}>
-                {section.rows.map((row, i) => (
-                  <ProfileRow key={row.label} row={row} first={i === 0} />
-                ))}
-              </View>
-            </View>
+            <MenuGroup key={section.title} title={section.title} rows={section.rows} />
           ))}
 
           <Pressable accessibilityRole="button" onPress={signOut} style={({ pressed }) => [styles.logout, pressed && { opacity: 0.7 }]}>
@@ -231,14 +254,6 @@ export default function ProfileScreen() {
               Keluar
             </Txt>
           </Pressable>
-          {/* Akun kasir/admin dihapus oleh admin dari panel. */}
-          {!isStaff && (
-            <Pressable accessibilityRole="button" onPress={() => setDeleteOpen(true)} hitSlop={8} style={{ alignSelf: 'center' }}>
-              <Txt weight="semibold" size={13} color={colors.muted} style={{ textDecorationLine: 'underline' }}>
-                Hapus akun
-              </Txt>
-            </Pressable>
-          )}
           <Txt size={12} color={colors.subtle} style={{ textAlign: 'center' }}>
             Ocean Space · versi {Constants.expoConfig?.version ?? '1.0.0'}
           </Txt>
@@ -277,63 +292,6 @@ export default function ProfileScreen() {
         </SafeAreaView>
       </Modal>
 
-      <DeleteAccountSheet
-        visible={deleteOpen}
-        points={loyalty?.points_balance ?? user.points_balance}
-        vouchers={loyalty?.active_vouchers ?? 0}
-        onClose={() => setDeleteOpen(false)}
-        onDeleted={() => {
-          setDeleteOpen(false);
-          void signOut();
-        }}
-      />
-    </View>
-  );
-}
-
-type Row = { icon: IconName; label: string; value?: string; go?: () => void };
-
-/** Satu baris di grup profil: info (label + nilai) atau tautan (dengan panah). */
-function ProfileRow({ row, first }: { row: Row; first: boolean }) {
-  const content = (
-    <>
-      <View style={styles.rowIcon}>
-        <Icon name={row.icon} size={19} color={colors.ink} strokeWidth={1.8} />
-      </View>
-      {row.go ? (
-        // Tautan: judul tebal, keterangan kecil di bawahnya (opsional).
-        <View style={{ flex: 1, gap: 2 }}>
-          <Txt weight="semibold" size={15}>
-            {row.label}
-          </Txt>
-          {row.value && (
-            <Txt size={12} color={colors.muted}>
-              {row.value}
-            </Txt>
-          )}
-        </View>
-      ) : (
-        // Info: label kecil di atas, nilainya tebal.
-        <View style={{ flex: 1, gap: 2 }}>
-          <Txt size={12} color={colors.muted}>
-            {row.label}
-          </Txt>
-          <Txt weight="semibold" size={15}>
-            {row.value}
-          </Txt>
-        </View>
-      )}
-      {row.go && <Icon name="chevron" size={18} color={colors.subtle} strokeWidth={2} />}
-    </>
-  );
-
-  return row.go ? (
-    <Pressable accessibilityRole="button" onPress={row.go} style={({ pressed }) => [styles.row, !first && styles.divider, pressed && { backgroundColor: colors.lineSoft }]}>
-      {content}
-    </Pressable>
-  ) : (
-    <View accessible accessibilityLabel={`${row.label}: ${row.value}`} style={[styles.row, !first && styles.divider]}>
-      {content}
     </View>
   );
 }
@@ -372,10 +330,6 @@ const styles = StyleSheet.create({
   stat: { flex: 1, alignItems: 'center', gap: 2 },
   statDivider: { borderLeftWidth: 1, borderLeftColor: colors.lineSoft },
   body: { padding: 16, paddingTop: 20, gap: 20 },
-  group: { backgroundColor: colors.surface, borderRadius: 16, borderWidth: 1, borderColor: colors.line, overflow: 'hidden' },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 12, minHeight: 58 },
-  rowIcon: { width: 36, height: 36, borderRadius: 11, backgroundColor: colors.accentSoft, alignItems: 'center', justifyContent: 'center' },
-  divider: { borderTopWidth: 1, borderTopColor: colors.lineSoft },
   logout: {
     flexDirection: 'row',
     alignItems: 'center',
