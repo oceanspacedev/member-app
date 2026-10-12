@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -26,7 +27,7 @@ use Spatie\Permission\Traits\HasRoles;
 class User extends Authenticatable implements FilamentUser, HasAvatar, HasName
 {
     /** @use HasFactory<UserFactory> */
-    use DeletesReplacedMedia, HasApiTokens, HasFactory, HasRoles, Notifiable;
+    use DeletesReplacedMedia, HasApiTokens, HasFactory, HasRoles, Notifiable, SoftDeletes;
 
     public const ROLE_MEMBER = 'member';
 
@@ -36,6 +37,20 @@ class User extends Authenticatable implements FilamentUser, HasAvatar, HasName
 
     /** Peran Shield dengan semua izin panel. */
     public const SUPER_ADMIN = 'super_admin';
+
+    /** Nama perangkat yang dikirim aplikasi saat login (device_name). */
+    public const DEVICES = [
+        'ios-app' => 'iPhone',
+        'android-app' => 'Android',
+        'web-app' => 'Web',
+        // Nama bawaan bila aplikasi tidak mengirim device_name.
+        'mobile' => 'Aplikasi',
+    ];
+
+    public static function deviceLabel(?string $device): ?string
+    {
+        return $device === null ? null : (self::DEVICES[$device] ?? $device);
+    }
 
     protected $attributes = [
         'role' => self::ROLE_MEMBER,
@@ -64,6 +79,8 @@ class User extends Authenticatable implements FilamentUser, HasAvatar, HasName
             'points_balance' => 'integer',
             'last_latitude' => 'float',
             'last_longitude' => 'float',
+            'last_login_at' => 'datetime',
+            'last_seen_at' => 'datetime',
             'password' => 'hashed',
         ];
     }

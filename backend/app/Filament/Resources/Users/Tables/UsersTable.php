@@ -18,6 +18,7 @@ use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Validation\ValidationException;
 
 class UsersTable
@@ -25,7 +26,9 @@ class UsersTable
     public static function configure(Table $table): Table
     {
         return $table
-            ->defaultSort('created_at', 'desc')
+            // Yang paling baru memakai aplikasi di atas; yang belum pernah login di bawah.
+            ->defaultSort('last_seen_at', 'desc')
+            ->modifyQueryUsing(fn (Builder $query) => $query->withCount('tokens'))
             ->columns([
                 ImageColumn::make('avatar_path')
                     ->label('')
@@ -61,6 +64,19 @@ class UsersTable
                     ->badge()
                     ->formatStateUsing(fn (string $state) => UserForm::ROLES[$state] ?? $state)
                     ->color(fn (string $state) => $state === User::ROLE_MEMBER ? 'gray' : 'primary'),
+                TextColumn::make('last_seen_at')
+                    ->label('Terakhir aktif')
+                    ->since()
+                    ->sortable()
+                    ->placeholder('Belum pernah login')
+                    ->description(fn (User $record) => User::deviceLabel($record->last_device))
+                    ->tooltip(fn (User $record) => $record->last_seen_at?->timezone(config('loyalty.timezone'))->translatedFormat('d M Y, H:i')),
+                TextColumn::make('tokens_count')
+                    ->label('Status')
+                    ->badge()
+                    ->formatStateUsing(fn (int $state) => $state > 0 ? 'Login' : 'Tidak login')
+                    ->color(fn (int $state) => $state > 0 ? 'success' : 'gray')
+                    ->description(fn (User $record) => $record->tokens_count > 1 ? $record->tokens_count.' perangkat' : null),
                 TextColumn::make('created_at')
                     ->label('Bergabung')
                     ->since()
@@ -73,6 +89,21 @@ class UsersTable
                 SelectFilter::make('role')
                     ->label('Jenis akun')
                     ->options(UserForm::ROLES),
+                SelectFilter::make('aktivitas')
+                    ->label('Aktivitas')
+                    ->options([
+                        'hari_ini' => 'Aktif hari ini',
+                        '7_hari' => 'Aktif 7 hari terakhir',
+                        'login' => 'Sedang login',
+                        'belum' => 'Belum pernah login',
+                    ])
+                    ->query(fn (Builder $query, array $data) => match ($data['value'] ?? null) {
+                        'hari_ini' => $query->where('last_seen_at', '>=', now(config('loyalty.timezone'))->startOfDay()->utc()),
+                        '7_hari' => $query->where('last_seen_at', '>=', now()->subDays(7)),
+                        'login' => $query->has('tokens'),
+                        'belum' => $query->whereNull('last_login_at'),
+                        default => $query,
+                    }),
             ])
             ->recordActions([
                 self::recordPurchaseAction(),

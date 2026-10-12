@@ -27,9 +27,10 @@ class PointTransaction extends Model
         ];
     }
 
+    // Termasuk akun yang sudah dihapus agar riwayat tetap tampil ("Akun dihapus").
     public function user(): BelongsTo
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class)->withTrashed();
     }
 
     public function outlet(): BelongsTo

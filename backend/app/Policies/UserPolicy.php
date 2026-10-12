@@ -2,6 +2,7 @@
 
 namespace App\Policies;
 
+use App\Models\User;
 use Illuminate\Auth\Access\HandlesAuthorization;
 use Illuminate\Foundation\Auth\User as AuthUser;
 
@@ -27,5 +28,13 @@ class UserPolicy
     public function update(AuthUser $authUser): bool
     {
         return $authUser->can('Update:User');
+    }
+
+    /** Hanya akun member/kasir; akun admin panel tidak bisa dihapus dari menu Member. */
+    public function delete(AuthUser $authUser, User $user): bool
+    {
+        return $authUser->can('Delete:User')
+            && $user->role !== User::ROLE_ADMIN
+            && ! $user->is($authUser);
     }
 }

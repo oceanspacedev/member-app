@@ -201,7 +201,7 @@ return [
                 'delete',
             ],
             // Member tidak dihapus dari panel (riwayat poin tetap utuh).
-            UserResource::class => ['viewAny', 'view', 'create', 'update'],
+            UserResource::class => ['viewAny', 'view', 'create', 'update', 'delete'],
             // Riwayat poin hanya-baca: berubah lewat kasir atau "Sesuaikan poin".
             PointTransactionResource::class => ['viewAny', 'view'],
             // Voucher hanya-baca: terbit dari aplikasi, terpakai lewat kasir.

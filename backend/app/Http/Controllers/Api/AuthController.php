@@ -10,6 +10,7 @@ use App\Services\OtpService;
 use App\Support\Phone;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
@@ -92,7 +93,11 @@ class AuthController extends Controller
     private function tokenResponse(User $user, Request $request, bool $isNew): JsonResponse
     {
         $abilities = $user->isStaff() ? ['member', 'pos'] : ['member'];
-        $token = $user->createToken($request->input('device_name', 'mobile'), $abilities)->plainTextToken;
+        $device = $request->input('device_name') ?: 'mobile';
+        $token = $user->createToken($device, $abilities)->plainTextToken;
+
+        // Jejak login untuk panel admin (Member → Terakhir aktif / Perangkat).
+        $user->forceFill(['last_login_at' => now(), 'last_seen_at' => now(), 'last_device' => Str::limit($device, 40, '')])->save();
 
         return response()->json([
             'token' => $token,

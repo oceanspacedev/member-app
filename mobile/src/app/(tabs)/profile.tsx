@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { ActivityIndicator, Modal, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { DeleteAccountSheet } from '@/components/delete-account-sheet';
 import { Icon, type IconName } from '@/components/icon';
 import { UserAvatar } from '@/components/media';
 import { Banner, Txt } from '@/components/ui';
@@ -27,6 +28,7 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const focused = useIsFocused();
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [avatarMessage, setAvatarMessage] = useState<{ tone: 'info' | 'error'; text: string } | null>(null);
   // Aksi yang menunggu sheet selesai menutup (iOS).
@@ -229,6 +231,14 @@ export default function ProfileScreen() {
               Keluar
             </Txt>
           </Pressable>
+          {/* Akun kasir/admin dihapus oleh admin dari panel. */}
+          {!isStaff && (
+            <Pressable accessibilityRole="button" onPress={() => setDeleteOpen(true)} hitSlop={8} style={{ alignSelf: 'center' }}>
+              <Txt weight="semibold" size={13} color={colors.muted} style={{ textDecorationLine: 'underline' }}>
+                Hapus akun
+              </Txt>
+            </Pressable>
+          )}
           <Txt size={12} color={colors.subtle} style={{ textAlign: 'center' }}>
             Ocean Space · versi {Constants.expoConfig?.version ?? '1.0.0'}
           </Txt>
@@ -266,6 +276,17 @@ export default function ProfileScreen() {
           </Pressable>
         </SafeAreaView>
       </Modal>
+
+      <DeleteAccountSheet
+        visible={deleteOpen}
+        points={loyalty?.points_balance ?? user.points_balance}
+        vouchers={loyalty?.active_vouchers ?? 0}
+        onClose={() => setDeleteOpen(false)}
+        onDeleted={() => {
+          setDeleteOpen(false);
+          void signOut();
+        }}
+      />
     </View>
   );
 }

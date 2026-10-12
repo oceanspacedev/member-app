@@ -42,7 +42,7 @@ Repositori ini berisi dua aplikasi yang memakai **satu database yang sama**:
 - **Promo & voucher**: promo info, klaim voucher gratis, tukar poin dengan voucher, **beli voucher dengan uang** (QRIS, VA, e-wallet via Xendit), voucher ulang tahun otomatis, promo khusus level tertentu.
 - **Voucher Saya**: daftar voucher aktif/riwayat dan QR voucher untuk ditunjukkan ke kasir.
 - **Direktori**: outlet terdekat dari GPS (jam buka, Maps, telepon, WhatsApp) dan daftar brand per kategori.
-- **Profil**: foto profil (galeri/kamera), data diri, riwayat.
+- **Profil**: foto profil (galeri/kamera), data diri, riwayat, dan **hapus akun** (konfirmasi dengan mengetik HAPUS).
 - Layar pembuka beranimasi, tampilan monokrom + emas dengan ikon khas berbasis logo.
 
 ### Mode Kasir (di aplikasi yang sama, untuk akun kasir/admin)
@@ -54,6 +54,7 @@ Repositori ini berisi dua aplikasi yang memakai **satu database yang sama**:
 
 - Kelola **Brand, Outlet, Promo/Voucher, Member**, lihat **Riwayat poin, Voucher, Pembayaran voucher**.
 - Aksi **Catat belanja** (struk manual) dan **Sesuaikan poin** per member.
+- **Aktivitas member**: login terakhir, terakhir aktif, perangkat (iPhone/Android/Web), status login, filter "Aktif hari ini / 7 hari / Sedang login / Belum pernah login", aksi **Keluarkan dari semua perangkat** dan **Hapus akun**.
 - **Pengguna panel + Peran & izin** (Filament Shield), **Log aplikasi** (Log Viewer), **Antrean** (Laravel Horizon).
 - Login dengan email + password atau OTP WhatsApp.
 
@@ -392,6 +393,23 @@ flowchart LR
     P -- peran lain --> SOME["Hanya menu yang<br/>dicentang di Peran & izin"]
 ```
 
+### 8. Aktivitas member & hapus akun
+
+Setiap login mencatat **login terakhir** dan **perangkat**; setiap kali aplikasi memanggil API, **terakhir aktif** diperbarui (paling sering sekali per 5 menit). Semua terlihat di Member dan di Dasbor.
+
+```mermaid
+flowchart TD
+    A["Member: Profil → Hapus akun<br/>ketik HAPUS"] --> D
+    B["Admin: Member → Lainnya → Hapus akun<br/>(izin Delete:User)"] --> D
+    D["Hapus akun"] --> E["Poin hangus (dicatat di riwayat)<br/>voucher aktif hangus"]
+    E --> F["Nama, WhatsApp, email, foto,<br/>tanggal lahir dihapus"]
+    F --> G["Semua sesi login diputus"]
+    G --> H["Akun disembunyikan (soft delete)<br/>riwayat tetap ada sebagai Akun dihapus"]
+    H --> I["Nomor yang sama bisa daftar lagi<br/>sebagai member baru"]
+```
+
+Akun kasir/admin tidak bisa menghapus dirinya sendiri dari aplikasi; akun admin panel tidak bisa dihapus dari menu Member.
+
 ---
 
 ## Panel admin
@@ -400,9 +418,9 @@ Buka `http://localhost:8010/admin`. Hanya akun berjenis **admin** yang bisa masu
 
 | Menu | Isi |
 |---|---|
-| Dasbor | Jumlah member, belanja & poin bulan ini, promo tayang, transaksi terbaru (diperbarui tiap 30 detik) |
+| Dasbor | Jumlah member, aktif di aplikasi hari ini, sedang login, belanja & poin bulan ini, promo tayang, transaksi terbaru (diperbarui tiap 30 detik) |
 | Katalog → Brand / Outlet / Promo | Data brand, outlet (jam buka, koordinat, foto 4:3), promo & voucher (jenis, nilai, harga poin/rupiah, kuota, level) |
-| Member & poin → Member | Data member & kasir, **Catat belanja**, **Sesuaikan poin** |
+| Member & poin → Member | Data member & kasir, kolom **Terakhir aktif** + perangkat + status login, **Catat belanja**, **Sesuaikan poin**, menu *Lainnya*: **Keluarkan dari semua perangkat**, **Hapus akun** |
 | Member & poin → Riwayat poin | Semua transaksi poin (hanya-baca) |
 | Member & poin → Voucher | Voucher terbit/terpakai per outlet + total potongan (rekonsiliasi antar-entitas) |
 | Member & poin → Pembayaran voucher | Tagihan Xendit, status, total, tombol **Cek status** |
@@ -428,7 +446,7 @@ Semua endpoint di bawah prefix `/api/v1`. Endpoint member memakai token Sanctum 
 |---|---|---|
 | POST | `/auth/otp/request`, `/auth/otp/verify`, `/auth/google` | Publik (dibatasi) |
 | GET | `/brands`, `/outlets?lat&lng&category&brand_id&q`, `/outlets/{id}`, `/promos?category&brand_id`, `/tiers` | Publik |
-| GET/PATCH | `/me` · GET `/me/qr` · GET `/me/points` · POST `/auth/logout` | Member |
+| GET/PATCH/DELETE | `/me` (DELETE = hapus akun, body `{"confirm": true}`) · GET `/me/qr` · GET `/me/points` · POST `/auth/logout` | Member |
 | POST/DELETE | `/me/avatar` (multipart `file`, maks 5 MB) | Member |
 | GET | `/me/vouchers?status=active\|history`, `/me/vouchers/{id}`, `/me/vouchers/{id}/qr` | Member |
 | POST | `/promos/{id}/vouchers` (klaim gratis / tukar poin) | Member |
@@ -451,7 +469,7 @@ cd backend && php artisan test
 cd mobile && npx tsc --noEmit && npx expo lint
 ```
 
-Tes backend (81 tes) mencakup login OTP & WAGHub, poin & level, kasir (idempoten per struk), QR bertanda tangan, voucher (klaim, tukar poin, ulang tahun, kuota, level, pemakaian di kasir), pembayaran Xendit (respons dipalsukan — tidak ada request keluar), panel admin, serta peran & izin.
+Tes backend (89 tes) mencakup login OTP & WAGHub, poin & level, kasir (idempoten per struk), QR bertanda tangan, voucher (klaim, tukar poin, ulang tahun, kuota, level, pemakaian di kasir), pembayaran Xendit (respons dipalsukan — tidak ada request keluar), panel admin, aktivitas member & hapus akun, serta peran & izin.
 
 ---
 

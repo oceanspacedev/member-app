@@ -9,6 +9,7 @@ use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
@@ -73,6 +74,36 @@ class UserForm
                         ->helperText('Poin dari mode kasir dicatat ke outlet ini.')
                         ->visible(fn (Get $get) => $get('role') === User::ROLE_CASHIER)
                         ->required(fn (Get $get) => $get('role') === User::ROLE_CASHIER),
+                ]),
+            Section::make('Aktivitas aplikasi')
+                ->description('Kapan member login dan memakai aplikasi, serta perangkat yang sedang login.')
+                ->columnSpanFull()
+                ->columns(3)
+                ->hiddenOn('create')
+                ->schema([
+                    TextEntry::make('last_login_at')
+                        ->label('Login terakhir')
+                        ->dateTime('d M Y, H:i', timezone: config('loyalty.timezone'))
+                        ->placeholder('Belum pernah login'),
+                    TextEntry::make('last_seen_at')
+                        ->label('Terakhir aktif')
+                        ->since()
+                        ->placeholder('—'),
+                    TextEntry::make('last_device')
+                        ->label('Perangkat terakhir')
+                        ->formatStateUsing(fn (?string $state) => User::deviceLabel($state))
+                        ->placeholder('—'),
+                    TextEntry::make('sessions')
+                        ->label('Sedang login di')
+                        ->columnSpanFull()
+                        ->state(fn (?User $record) => $record?->tokens()->latest('id')->get()
+                            ->map(fn ($token) => User::deviceLabel($token->name)
+                                .' · masuk '.$token->created_at->timezone(config('loyalty.timezone'))->translatedFormat('d M Y, H:i')
+                                .($token->last_used_at ? ' · terakhir dipakai '.$token->last_used_at->diffForHumans() : ''))
+                            ->all())
+                        ->listWithLineBreaks()
+                        ->bulleted()
+                        ->placeholder('Tidak sedang login di perangkat mana pun'),
                 ]),
             Section::make('Loyalti')
                 ->description('Saldo poin hanya berubah lewat transaksi (kasir) atau aksi "Sesuaikan poin".')

@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\PointTransactionResource;
 use App\Http\Resources\UserResource;
+use App\Models\User;
+use App\Services\AccountService;
 use App\Services\LoyaltyService;
 use App\Services\MemberQr;
 use App\Services\VoucherService;
@@ -71,6 +73,22 @@ class ProfileController extends Controller
         $user->forceFill(['avatar_path' => null])->save();
 
         return new UserResource($user);
+    }
+
+    /**
+     * Member menghapus akunnya sendiri (wajib ada di aplikasi menurut aturan App Store & Play Store).
+     * Akun kasir/admin dikelola dari panel admin.
+     */
+    public function destroy(Request $request, AccountService $accounts): JsonResponse
+    {
+        $request->validate(['confirm' => ['accepted']]);
+
+        $user = $request->user();
+        abort_if($user->role !== User::ROLE_MEMBER, 403, 'Akun kasir/admin hanya bisa dihapus oleh admin.');
+
+        $accounts->delete($user);
+
+        return response()->json(['message' => 'Akun sudah dihapus.']);
     }
 
     public function qr(Request $request, MemberQr $qr): JsonResponse
