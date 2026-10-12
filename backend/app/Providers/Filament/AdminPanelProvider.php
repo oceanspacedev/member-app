@@ -2,7 +2,8 @@
 
 namespace App\Providers\Filament;
 
-use App\Filament\Pages\Auth\OtpLogin;
+use App\Filament\Pages\Auth\Login;
+use App\Filament\Pages\Auth\WhatsAppLogin;
 use Apriansyahrs\MekayaTheme\MekayaPlugin;
 use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
 use Filament\Http\Middleware\Authenticate;
@@ -16,12 +17,14 @@ use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
 use Filament\Support\Icons\Heroicon;
+use Filament\View\PanelsRenderHook;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Route;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 class AdminPanelProvider extends PanelProvider
@@ -39,8 +42,11 @@ class AdminPanelProvider extends PanelProvider
                     ->sidebarWidth('16rem'),
             )
             ->viteTheme('resources/css/app.css')
-            // Dipanggil setelah plugin agar login Email/WhatsApp kita yang dipakai.
-            ->login(OtpLogin::class)
+            // Dipanggil setelah plugin agar login kita yang dipakai. Pola sama dengan dnd-web:
+            // form email + tombol "Atau masuk dengan WhatsApp" ke halaman OTP terpisah.
+            ->login(Login::class)
+            ->routes(fn () => Route::get('login/whatsapp', WhatsAppLogin::class)->name('auth.whatsapp-login'))
+            ->renderHook(PanelsRenderHook::AUTH_LOGIN_FORM_AFTER, fn () => WhatsAppLogin::isAvailable() ? view('auth.login-extra') : '')
             ->profile(isSimple: false)
             ->registration(null)
             ->passwordReset(null)
@@ -79,6 +85,12 @@ class AdminPanelProvider extends PanelProvider
                     ->group('Akses & sistem')
                     ->sort(4)
                     ->visible(fn (): bool => Gate::allows('viewHorizon')),
+                NavigationItem::make('Dokumentasi API')
+                    ->url('/docs/api', shouldOpenInNewTab: true)
+                    ->icon(Heroicon::OutlinedCodeBracketSquare)
+                    ->group('Akses & sistem')
+                    ->sort(5)
+                    ->visible(fn (): bool => Gate::allows('viewApiDocs')),
             ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')

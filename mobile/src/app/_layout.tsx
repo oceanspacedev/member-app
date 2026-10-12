@@ -56,29 +56,37 @@ function RootNavigator({ fontsLoaded }: { fontsLoaded: boolean }) {
   if (!ready) return null;
 
   const signedIn = status === 'signedIn';
-  const profileComplete = !!user?.profile_complete;
+  const guest = status === 'guest';
+  const member = signedIn && !!user?.profile_complete;
 
-  // Layar yang tidak lolos guard otomatis dialihkan ke layar pertama yang tersedia.
+  // Layar yang tidak lolos guard otomatis dialihkan ke layar pertama yang tersedia, jadi urutan penting:
+  // tamu & member mendarat di (tabs), yang belum memilih apa pun mendarat di login.
   return (
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.ground } }}>
+      {/* Katalog publik: bisa dibuka tamu. */}
+      <Stack.Protected guard={member || guest}>
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="outlet/[id]" />
+        <Stack.Screen name="brands" />
+        <Stack.Screen name="tiers" />
+      </Stack.Protected>
+
+      <Stack.Protected guard={member}>
+        <Stack.Screen name="account" />
+        <Stack.Screen name="points" />
+        <Stack.Screen name="cashier" />
+        <Stack.Screen name="vouchers" />
+        <Stack.Screen name="voucher/[id]" />
+      </Stack.Protected>
+
+      {/* Tamu juga boleh membuka login (dari tombol "Masuk") lalu kembali menjelajah. */}
       <Stack.Protected guard={!signedIn}>
         <Stack.Screen name="login" />
         <Stack.Screen name="otp" />
       </Stack.Protected>
 
-      <Stack.Protected guard={signedIn && !profileComplete}>
+      <Stack.Protected guard={signedIn && !member}>
         <Stack.Screen name="complete-profile" />
-      </Stack.Protected>
-
-      <Stack.Protected guard={signedIn && profileComplete}>
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="points" />
-        <Stack.Screen name="outlet/[id]" />
-        <Stack.Screen name="cashier" />
-        <Stack.Screen name="vouchers" />
-        <Stack.Screen name="brands" />
-        <Stack.Screen name="tiers" />
-        <Stack.Screen name="voucher/[id]" />
       </Stack.Protected>
     </Stack>
   );

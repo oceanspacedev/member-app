@@ -57,11 +57,11 @@ class AccessControlTest extends TestCase
     {
         $this->actingAs($this->superAdmin());
 
-        foreach (['/admin/brands', '/admin/users', '/admin/pengguna-panel', '/admin/shield/roles', '/log-viewer', '/horizon'] as $url) {
+        foreach (['/admin/brands', '/admin/users', '/admin/pengguna-panel', '/admin/shield/roles', '/log-viewer', '/horizon', '/docs/api', '/docs/api.json'] as $url) {
             $this->get($url)->assertOk();
         }
 
-        $this->get('/admin')->assertSee('Log aplikasi')->assertSee('Antrean (Horizon)')->assertSee('Peran &amp; izin', false);
+        $this->get('/admin')->assertSee('Log aplikasi')->assertSee('Antrean (Horizon)')->assertSee('Dokumentasi API')->assertSee('Peran &amp; izin', false);
     }
 
     public function test_limited_role_only_sees_what_it_is_given(): void
@@ -71,19 +71,22 @@ class AccessControlTest extends TestCase
         $this->get('/admin/brands')->assertOk();
         $this->get('/admin/brands/create')->assertForbidden();
 
-        foreach (['/admin/users', '/admin/promos', '/admin/pengguna-panel', '/admin/shield/roles', '/log-viewer', '/horizon'] as $url) {
+        foreach (['/admin/users', '/admin/promos', '/admin/pengguna-panel', '/admin/shield/roles', '/log-viewer', '/horizon', '/docs/api', '/docs/api.json'] as $url) {
             $this->get($url)->assertForbidden();
         }
 
-        $this->get('/admin')->assertOk()->assertDontSee('Log aplikasi')->assertDontSee('Antrean (Horizon)');
+        $this->get('/admin')->assertOk()->assertDontSee('Log aplikasi')->assertDontSee('Antrean (Horizon)')->assertDontSee('Dokumentasi API');
         $this->assertFalse(LoyaltyStats::canView());
     }
 
     public function test_tool_permissions_open_logs_and_horizon_without_super_admin(): void
     {
-        $this->actingAs($this->adminWith(['View:LogViewer', 'View:Horizon'], 'developer'));
+        $this->actingAs($this->adminWith(['View:LogViewer', 'View:Horizon', 'View:ApiDocs'], 'developer'));
 
         $this->get('/log-viewer')->assertOk();
+        $this->get('/docs/api')->assertOk();
+        $this->get('/docs/api.json')->assertOk()->assertJsonPath('info.title', 'Ocean Space API');
+        $this->getJson('/log-viewer/api/folders')->assertOk();
         $this->get('/horizon')->assertOk();
         $this->get('/admin/brands')->assertForbidden();
     }
@@ -92,6 +95,7 @@ class AccessControlTest extends TestCase
     {
         $this->get('/log-viewer')->assertRedirect('/admin/login');
         $this->get('/horizon')->assertRedirect('/admin/login');
+        $this->get('/docs/api')->assertRedirect('/admin/login');
 
         // Peran yang tertinggal di akun non-admin tidak membuka apa pun.
         $member = User::factory()->create();
@@ -99,6 +103,8 @@ class AccessControlTest extends TestCase
         $this->actingAs($member);
 
         $this->get('/log-viewer')->assertForbidden();
+        $this->getJson('/log-viewer/api/folders')->assertForbidden();
+        $this->get('/docs/api')->assertForbidden();
         $this->get('/horizon')->assertForbidden();
         $this->get('/admin')->assertForbidden();
     }

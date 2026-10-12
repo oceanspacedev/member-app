@@ -1,8 +1,9 @@
-import { Tabs } from 'expo-router';
+import { router, Tabs } from 'expo-router';
 import { View, type ColorValue } from 'react-native';
 
 import { Icon, type IconName } from '@/components/icon';
 import { colors, fonts } from '@/constants/theme';
+import { useSession } from '@/lib/session';
 
 function tabIcon(name: IconName) {
   return function TabIcon({ color }: { color: ColorValue }) {
@@ -11,6 +12,8 @@ function tabIcon(name: IconName) {
 }
 
 export default function TabsLayout() {
+  const { status } = useSession();
+
   return (
     <Tabs
       screenOptions={{
@@ -24,11 +27,19 @@ export default function TabsLayout() {
       <Tabs.Screen name="index" options={{ title: 'Beranda', tabBarIcon: tabIcon('home') }} />
       <Tabs.Screen name="promo" options={{ title: 'Promo', tabBarIcon: tabIcon('tag') }} />
       <Tabs.Screen
-        name="qr"
+        name="struk"
+        // Kirim struk butuh akun: tamu langsung dibawa ke layar login, tanpa halaman perantara.
+        listeners={{
+          tabPress: (e) => {
+            if (status !== 'guest') return;
+            e.preventDefault();
+            router.push('/login');
+          },
+        }}
         options={{
-          title: 'QR Member',
+          title: 'Foto Struk',
           tabBarLabel: () => null,
-          tabBarAccessibilityLabel: 'QR Member',
+          tabBarAccessibilityLabel: 'Foto struk untuk dapat poin',
           tabBarIcon: ({ focused }) => (
             <View
               style={{
@@ -42,7 +53,7 @@ export default function TabsLayout() {
                 alignItems: 'center',
                 justifyContent: 'center',
               }}>
-              <Icon name="qr" size={26} color={focused ? colors.primaryDark : '#FFFFFF'} />
+              <Icon name="camera" size={26} color={focused ? colors.primaryDark : '#FFFFFF'} />
             </View>
           ),
         }}

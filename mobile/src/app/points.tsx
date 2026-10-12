@@ -1,16 +1,17 @@
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Icon } from '@/components/icon';
 import { BrandAvatar } from '@/components/media';
-import { Banner, Card, ScreenHeader, Txt } from '@/components/ui';
+import { Banner, Button, Card, ScreenHeader, Txt } from '@/components/ui';
 import { colors } from '@/constants/theme';
 import { api, ApiError } from '@/lib/api';
 import { number, rupiah, shortDate } from '@/lib/format';
 import { useSession } from '@/lib/session';
-import type { Loyalty, Paginated, PointTransaction } from '@/lib/types';
+import type { Loyalty, Paginated, PointTransaction, ReceiptClaim } from '@/lib/types';
+import { useApi } from '@/lib/use-api';
 
 type HistoryPage = Paginated<PointTransaction> & { loyalty: Loyalty };
 
@@ -22,6 +23,11 @@ export default function PointsScreen() {
   const [lastPage, setLastPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Struk yang dikirim member (outlet dengan POS pihak ketiga); dimuat ulang setiap layar dibuka.
+  const receipts = useApi<{ data: ReceiptClaim[] }>('/me/receipts');
+  const reloadReceipts = receipts.reload;
+  useFocusEffect(useCallback(() => reloadReceipts(), [reloadReceipts]));
+  const recentReceipts = (receipts.data?.data ?? []).slice(0, 5);
 
   const apply = useCallback((res: HistoryPage) => {
     setItems((prev) => (res.meta.current_page === 1 ? res.data : [...prev, ...res.data]));
@@ -92,6 +98,41 @@ export default function PointsScreen() {
         <Icon name="chevron" size={18} color={colors.subtle} strokeWidth={2} />
       </Pressable>
 
+      <View style={{ gap: 10 }}>
+        <Button title="Kirim struk belanja" icon="camera" variant="brass" onPress={() => router.navigate('/struk')} />
+        <Txt size={12} color={colors.muted} style={{ lineHeight: 18 }}>
+          Belanja di outlet tapi belum dapat poin? Foto struknya, poin langsung masuk setelah diperiksa.
+        </Txt>
+        {recentReceipts.length > 0 && (
+          <View style={styles.receipts}>
+            {recentReceipts.map((r, i) => (
+              <View key={r.id} style={[styles.receiptRow, i > 0 && { borderTopWidth: 1, borderTopColor: colors.lineSoft }]}>
+                <View style={{ flex: 1, gap: 2 }}>
+                  <Txt weight="bold" size={13}>
+                    {r.outlet?.name ?? 'Struk belanja'}
+                    {r.amount != null ? ` · ${rupiah(r.amount)}` : ''}
+                  </Txt>
+                  <Txt size={12} color={r.status === 'rejected' ? colors.danger : colors.muted}>
+                    {r.status === 'rejected' && r.reject_reason
+                      ? r.reject_reason
+                      : r.in_review
+                        ? `Dikirim ${shortDate(r.created_at)} · dicek petugas, hasil lewat WhatsApp`
+                        : r.receipt_number
+                          ? `Struk ${r.receipt_number}${r.purchased_at ? ` · ${shortDate(r.purchased_at)}` : ''}`
+                          : `Dikirim ${shortDate(r.created_at)} · sedang diperiksa`}
+                  </Txt>
+                </View>
+                <View style={[styles.status, r.status === 'approved' ? styles.approved : r.status === 'rejected' ? styles.rejected : styles.pending]}>
+                  <Txt weight="bold" size={11} color={r.status === 'approved' ? colors.success : r.status === 'rejected' ? colors.danger : colors.accentText}>
+                    {r.status === 'approved' && r.points != null ? `+${number(r.points)} poin` : r.status_label}
+                  </Txt>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
+      </View>
+
       <Txt weight="extrabold" size={16} accessibilityRole="header">
         Riwayat poin
       </Txt>
@@ -113,7 +154,7 @@ export default function PointsScreen() {
         ListEmptyComponent={
           loading ? null : (
             <Txt size={13} color={colors.muted}>
-              Belum ada transaksi. Tunjukkan QR member saat belanja untuk mulai mengumpulkan poin.
+              Belum ada transaksi. Foto struk belanjamu di outlet Ocean Space untuk mulai mengumpulkan poin.
             </Txt>
           )
         }
@@ -145,6 +186,12 @@ export default function PointsScreen() {
 }
 
 const styles = StyleSheet.create({
+  receipts: { backgroundColor: colors.surface, borderRadius: 14, borderWidth: 1, borderColor: colors.line, paddingHorizontal: 14 },
+  receiptRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 },
+  status: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 },
+  pending: { backgroundColor: colors.accentSoft },
+  approved: { backgroundColor: '#E7F4EC' },
+  rejected: { backgroundColor: '#FBECE8' },
   tierPill: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, backgroundColor: colors.accentSoft },
   tiersLink: {
     flexDirection: 'row',

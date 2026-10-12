@@ -28,7 +28,7 @@ export function Txt({ weight = 'regular', size = 14, color = colors.ink, style, 
 
 type ButtonProps = Omit<PressableProps, 'style'> & {
   title: string;
-  variant?: 'primary' | 'brass' | 'secondary' | 'outline' | 'light' | 'danger';
+  variant?: 'primary' | 'brass' | 'secondary' | 'outline' | 'light' | 'danger' | 'destructive';
   loading?: boolean;
   icon?: IconName;
   /** Elemen bebas di kiri label, mis. logo brand. */
@@ -43,6 +43,7 @@ const buttonVariants = {
   outline: { bg: 'transparent', fg: colors.primary, border: colors.primary },
   light: { bg: '#FFFFFF', fg: colors.primaryDark, border: '#FFFFFF' },
   danger: { bg: colors.surface, fg: colors.danger, border: '#E8C9BE' },
+  destructive: { bg: colors.danger, fg: '#FFFFFF', border: colors.danger },
 } as const;
 
 export function Button({ title, variant = 'primary', loading, disabled, icon, leading, style, ...rest }: ButtonProps) {

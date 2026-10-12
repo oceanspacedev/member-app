@@ -9,7 +9,7 @@ import { LogoGlyph } from '@/components/logo';
 import { MenuIcon, type MenuIconName } from '@/components/menu-icon';
 import { OutletRow, OutletSeparator } from '@/components/outlet-row';
 import { PromoCarousel } from '@/components/promo-carousel';
-import { Txt } from '@/components/ui';
+import { Banner, Txt } from '@/components/ui';
 import { WordReveal } from '@/components/word-reveal';
 import { colors } from '@/constants/theme';
 import { greeting, number, rupiah, rupiahShort } from '@/lib/format';
@@ -18,10 +18,12 @@ import type { Outlet, Promo } from '@/lib/types';
 import { useApi } from '@/lib/use-api';
 import { useLocation } from '@/lib/use-location';
 
-type MenuItem = { label: string; icon: MenuIconName; href: Href; badge?: number };
+// memberOnly: tamu diarahkan ke login karena halamannya butuh akun.
+type MenuItem = { label: string; icon: MenuIconName; href: Href; badge?: number; memberOnly?: boolean };
 
 export default function HomeScreen() {
-  const { user, loyalty, refresh } = useSession();
+  const { status, user, loyalty, refresh } = useSession();
+  const guest = status === 'guest';
   const insets = useSafeAreaInsets();
   const focused = useIsFocused();
   const location = useLocation();
@@ -33,14 +35,13 @@ export default function HomeScreen() {
     setRefreshing(true);
     promos.reload();
     outlets.reload();
-    await refresh().catch(() => undefined);
+    if (!guest) await refresh().catch(() => undefined);
     setRefreshing(false);
   }
 
-  if (!user) return null;
+  if (!user && !guest) return null;
 
-  const firstName = user.name?.split(' ')[0] ?? '';
-  const hello = `Halo, ${firstName}`;
+  const hello = user ? `Halo, ${user.name?.split(' ')[0] ?? ''}` : 'Halo, Tamu';
   const nearby = (outlets.data?.data ?? []).slice(0, 3);
   const allPromos = promos.data?.data ?? [];
   const rewards = allPromos.filter((p) => p.voucher?.price_points != null);
@@ -48,13 +49,13 @@ export default function HomeScreen() {
 
   // Delapan menu member, sesuai fitur di dokumen rancangan.
   const menu: MenuItem[] = [
-    { label: 'Voucher Saya', icon: 'vouchers', href: '/vouchers', badge: loyalty?.active_vouchers },
+    { label: 'Voucher Saya', icon: 'vouchers', href: '/vouchers', badge: loyalty?.active_vouchers, memberOnly: true },
     { label: 'Beli Voucher', icon: 'buy', href: { pathname: '/promo', params: { jenis: 'voucher' } } },
     { label: 'Tukar Poin', icon: 'points', href: { pathname: '/promo', params: { jenis: 'poin' } } },
     { label: 'Promo', icon: 'promo', href: { pathname: '/promo', params: { jenis: '' } } },
     { label: 'Outlet', icon: 'outlet', href: '/outlets' },
     { label: 'Brand Grup', icon: 'brands', href: '/brands' },
-    { label: 'Riwayat Poin', icon: 'history', href: '/points' },
+    { label: 'Riwayat Poin', icon: 'history', href: '/points', memberOnly: true },
     { label: 'Level Member', icon: 'level', href: '/tiers' },
   ];
 
@@ -74,21 +75,39 @@ export default function HomeScreen() {
               <WordReveal text={hello} size={14} color={colors.onPrimaryMuted} />
               <WordReveal text={greeting().replace(',', '')} size={18} weight="extrabold" color="#FFFFFF" header delay={hello.split(' ').length * 110 + 60} />
             </View>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={`${loyalty?.tier_label ?? ''}, ${number(loyalty?.points_balance ?? user.points_balance)} poin. Buka riwayat poin.`}
-              onPress={() => router.push('/points')}
-              style={({ pressed }) => [styles.pointsPill, pressed && { opacity: 0.9 }]}>
-              <View>
-                <Txt weight="extrabold" size={11} color={colors.accentText} style={{ letterSpacing: 1 }}>
-                  {(loyalty?.tier_label ?? user.tier).toUpperCase()}
-                </Txt>
-                <Txt weight="extrabold" size={16}>
-                  {number(loyalty?.points_balance ?? user.points_balance)} Poin
-                </Txt>
-              </View>
-              <Icon name="chevron" size={18} color={colors.muted} strokeWidth={2.2} />
-            </Pressable>
+            {user ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`${loyalty?.tier_label ?? ''}, ${number(loyalty?.points_balance ?? user.points_balance)} poin. Buka riwayat poin.`}
+                onPress={() => router.push('/points')}
+                style={({ pressed }) => [styles.pointsPill, pressed && { opacity: 0.9 }]}>
+                <View>
+                  <Txt weight="extrabold" size={11} color={colors.accentText} style={{ letterSpacing: 1 }}>
+                    {(loyalty?.tier_label ?? user.tier).toUpperCase()}
+                  </Txt>
+                  <Txt weight="extrabold" size={16}>
+                    {number(loyalty?.points_balance ?? user.points_balance)} Poin
+                  </Txt>
+                </View>
+                <Icon name="chevron" size={18} color={colors.muted} strokeWidth={2.2} />
+              </Pressable>
+            ) : (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Masuk atau daftar untuk kumpulkan poin"
+                onPress={() => router.push('/login')}
+                style={({ pressed }) => [styles.pointsPill, pressed && { opacity: 0.9 }]}>
+                <View>
+                  <Txt weight="extrabold" size={11} color={colors.accentText} style={{ letterSpacing: 1 }}>
+                    KUMPULKAN POIN
+                  </Txt>
+                  <Txt weight="extrabold" size={16}>
+                    Masuk
+                  </Txt>
+                </View>
+                <Icon name="chevron" size={18} color={colors.muted} strokeWidth={2.2} />
+              </Pressable>
+            )}
           </View>
 
           {loyalty && (
@@ -116,13 +135,20 @@ export default function HomeScreen() {
           </Txt>
         </Pressable>
 
+        {/* Promo & outlet gagal dimuat (offline / koneksi lambat): beri tahu, jangan biarkan kosong. */}
+        {(promos.error || outlets.error) && !promos.data && !outlets.data && (
+          <View style={{ paddingHorizontal: 16, paddingTop: 12 }}>
+            <Banner tone="error" text={`${promos.error ?? outlets.error} Tarik ke bawah untuk coba lagi.`} />
+          </View>
+        )}
+
         <View style={styles.menu}>
           {menu.map((m) => (
             <Pressable
               key={m.label}
               accessibilityRole="button"
               accessibilityLabel={m.badge ? `${m.label}, ${m.badge} aktif` : m.label}
-              onPress={() => router.navigate(m.href)}
+              onPress={() => (guest && m.memberOnly ? router.push('/login') : router.navigate(m.href))}
               style={({ pressed }) => [styles.menuItem, pressed && { opacity: 0.7 }]}>
               <View style={styles.menuIcon}>
                 <MenuIcon name={m.icon} size={48} />
@@ -141,6 +167,27 @@ export default function HomeScreen() {
           ))}
         </View>
 
+        {/* Outlet memakai POS pihak ketiga: poin bisa diklaim dari foto struk. */}
+        {user && (
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.navigate('/struk')}
+            style={({ pressed }) => [styles.receiptCta, pressed && { opacity: 0.85 }]}>
+            <View style={styles.receiptIcon}>
+              <Icon name="camera" size={22} color={colors.accentInk} strokeWidth={2} />
+            </View>
+            <View style={{ flex: 1, gap: 2 }}>
+              <Txt weight="bold" size={14}>
+                Sudah belanja? Foto struknya
+              </Txt>
+              <Txt size={12} color={colors.muted}>
+                Kirim foto struk dari outlet Ocean Space, poin langsung masuk.
+              </Txt>
+            </View>
+            <Icon name="chevron" size={18} color={colors.subtle} strokeWidth={2} />
+          </Pressable>
+        )}
+
         {allPromos.length > 0 && (
           <View style={styles.section}>
             <SectionHeader title="Promo pilihan" action="Semua promo" onPress={() => router.navigate({ pathname: '/promo', params: { jenis: '' } })} />
@@ -151,8 +198,7 @@ export default function HomeScreen() {
         {rewards.length > 0 && (
           <View style={styles.section}>
             <SectionHeader
-              title="Katalog hadiah"
-              subtitle="Tukar poin kamu dengan voucher di semua brand grup"
+              title="Tukar poin"
               action="Lihat semua"
               onPress={() => router.navigate({ pathname: '/promo', params: { jenis: 'poin' } })}
             />
@@ -163,25 +209,18 @@ export default function HomeScreen() {
                   accessibilityRole="button"
                   onPress={() => router.navigate({ pathname: '/promo', params: { jenis: 'poin' } })}
                   style={styles.reward}>
-                  <View style={[styles.rewardValue, { backgroundColor: p.brand?.color ?? colors.primary }]}>
-                    <Txt weight="extrabold" size={20} color="#FFFFFF">
-                      {rupiahShort(p.voucher!.value)}
-                    </Txt>
-                    <Txt weight="semibold" size={11} color="#FFFFFF">
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <View style={[styles.rewardDot, { backgroundColor: p.brand?.color ?? colors.primary }]} />
+                    <Txt weight="semibold" size={11} color={colors.muted} numberOfLines={1} style={{ flex: 1 }}>
                       {p.is_universal ? 'Semua outlet' : p.brand?.name}
                     </Txt>
                   </View>
-                  <View style={{ padding: 12, gap: 4 }}>
-                    <Txt weight="bold" size={13} numberOfLines={2} style={{ lineHeight: 18 }}>
-                      {p.title}
-                    </Txt>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-                      <Icon name="coins" size={14} color={colors.accentText} strokeWidth={2} />
-                      <Txt weight="extrabold" size={13} color={colors.accentText}>
-                        {number(p.voucher!.price_points!)} poin
-                      </Txt>
-                    </View>
-                  </View>
+                  <Txt weight="extrabold" size={20} style={{ letterSpacing: -0.4 }}>
+                    {rupiahShort(p.voucher!.value)}
+                  </Txt>
+                  <Txt weight="bold" size={12} color={colors.accentText}>
+                    {number(p.voucher!.price_points!)} poin
+                  </Txt>
                 </Pressable>
               ))}
             </ScrollView>
@@ -229,6 +268,19 @@ function SectionHeader({ title, subtitle, action, onPress }: { title: string; su
 }
 
 const styles = StyleSheet.create({
+  receiptCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginHorizontal: 16,
+    marginTop: 28,
+    padding: 14,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+  },
+  receiptIcon: { width: 44, height: 44, borderRadius: 12, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
   header: { backgroundColor: colors.primary, paddingHorizontal: 16, paddingBottom: 18, gap: 16 },
   headerRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   logo: { width: 44, height: 44, borderRadius: 12, backgroundColor: colors.primaryMid, alignItems: 'center', justifyContent: 'center' },
@@ -276,6 +328,6 @@ const styles = StyleSheet.create({
   },
   section: { marginTop: 32, gap: 12 },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', gap: 12, paddingHorizontal: 16 },
-  reward: { width: 200, backgroundColor: colors.surface, borderRadius: 16, borderWidth: 1, borderColor: colors.line, overflow: 'hidden' },
-  rewardValue: { height: 86, padding: 12, justifyContent: 'flex-end', gap: 2 },
+  reward: { width: 140, backgroundColor: colors.surface, borderRadius: 14, borderWidth: 1, borderColor: colors.line, padding: 12, gap: 4 },
+  rewardDot: { width: 8, height: 8, borderRadius: 4 },
 });

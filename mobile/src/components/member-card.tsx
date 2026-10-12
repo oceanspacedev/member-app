@@ -2,74 +2,17 @@ import { router } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { colors, tierColors } from '@/constants/theme';
-import { number, rupiah } from '@/lib/format';
-import type { Loyalty, Tier, User } from '@/lib/types';
+import { rupiah } from '@/lib/format';
+import type { Loyalty, Tier } from '@/lib/types';
 
 import { Icon } from './icon';
 import { LogoGlyph } from './logo';
 import { Txt } from './ui';
 
-/** Kartu keanggotaan — diketuk untuk membuka QR member. */
-export function MemberCard({ user, loyalty }: { user: User; loyalty: Loyalty | null }) {
-  const balance = loyalty?.points_balance ?? user.points_balance;
-  const tier = (loyalty?.tier_label ?? user.tier).toUpperCase();
-
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`Kartu member ${tier}, ${number(balance)} poin. Ketuk untuk menampilkan QR member.`}
-      onPress={() => router.navigate('/qr')}
-      style={({ pressed }) => [styles.card, pressed && { opacity: 0.92 }]}>
-      <View style={styles.watermark} pointerEvents="none">
-        <LogoGlyph size={190} />
-      </View>
-
-      <View style={styles.row}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <LogoGlyph size={20} />
-          <Txt weight="semibold" size={13} color="#FFFFFF">
-            Ocean Space
-          </Txt>
-        </View>
-        <Txt weight="bold" size={12} color={colors.accent} style={{ letterSpacing: 2.5 }}>
-          {tier}
-        </Txt>
-      </View>
-
-      <View>
-        <Txt size={12} color={colors.onPrimaryMuted}>
-          Saldo poin
-        </Txt>
-        <Txt weight="extrabold" size={34} color="#FFFFFF" style={{ letterSpacing: -0.8 }}>
-          {number(balance)}
-        </Txt>
-        {loyalty && (
-          <Txt size={12} color={colors.onPrimaryMuted}>
-            Setara {rupiah(loyalty.points_value)}
-          </Txt>
-        )}
-      </View>
-
-      <View style={styles.row}>
-        <Txt weight="medium" size={13} color={colors.onPrimaryMuted} style={{ letterSpacing: 1.5 }}>
-          {user.member_code_display}
-        </Txt>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-          <Icon name="qr" size={16} color="#FFFFFF" strokeWidth={2} />
-          <Txt weight="semibold" size={12} color="#FFFFFF">
-            Tampilkan QR
-          </Txt>
-        </View>
-      </View>
-    </Pressable>
-  );
-}
-
 type TierStatus = 'current' | 'next' | 'reached' | 'locked';
 
 /**
- * Kartu satu level keanggotaan (Silver/Gold/Platinum) — sekeluarga dengan kartu member,
- * dengan warna tier. Level aktif diberi bingkai emas; level berikutnya menampilkan sisa belanja.
+ * Kartu satu level keanggotaan (Silver/Gold/Platinum) dengan warna tier. Level aktif diberi bingkai emas; level berikutnya menampilkan sisa belanja.
  */
 export function TierCard({ tier, status, remaining }: { tier: Tier; status: TierStatus; remaining?: number }) {
   const color = tierColors[tier.key] ?? colors.subtle;
@@ -152,15 +95,6 @@ export function TierProgress({ loyalty }: { loyalty: Loyalty }) {
 }
 
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: colors.primary,
-    borderRadius: 20,
-    padding: 20,
-    aspectRatio: 1.62,
-    justifyContent: 'space-between',
-    overflow: 'hidden',
-  },
-  watermark: { position: 'absolute', right: -40, bottom: -50, opacity: 0.08 },
   tierCard: { borderRadius: 18, padding: 16, gap: 14, overflow: 'hidden' },
   // Bingkai emas untuk level yang sedang dimiliki.
   tierCurrent: { borderWidth: 2, borderColor: colors.accent },

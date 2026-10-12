@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Icon } from '@/components/icon';
+import { Icon, type IconName } from '@/components/icon';
 import { Button, Field, Txt } from '@/components/ui';
 import { colors } from '@/constants/theme';
 import { api, ApiError } from '@/lib/api';
@@ -28,13 +28,16 @@ export function DeleteAccountSheet({ visible, points, vouchers, onClose, onDelet
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const consequences = [
-    points > 0 || vouchers > 0
-      ? `${number(points)} poin${vouchers > 0 ? ` dan ${number(vouchers)} voucher aktif` : ''} hangus.`
-      : 'Level member dan riwayat belanjamu tidak bisa dipulihkan.',
-    'Nama, nomor WhatsApp, email, foto, dan tanggal lahir dihapus permanen.',
-    'Kamu keluar dari semua perangkat.',
-    'Nomor yang sama bisa daftar lagi, tapi mulai dari nol.',
+  const consequences: { icon: IconName; text: string }[] = [
+    {
+      icon: 'coins',
+      text:
+        points > 0 || vouchers > 0
+          ? `${number(points)} poin${vouchers > 0 ? ` dan ${number(vouchers)} voucher aktif` : ''} hangus`
+          : 'Level dan riwayat belanja tidak bisa dipulihkan',
+    },
+    { icon: 'user', text: 'Data diri dan foto dihapus permanen' },
+    { icon: 'logout', text: 'Keluar dari semua perangkat' },
   ];
 
   function close() {
@@ -62,26 +65,31 @@ export function DeleteAccountSheet({ visible, points, vouchers, onClose, onDelet
         <Pressable style={styles.backdrop} onPress={close} accessibilityLabel="Tutup" />
         <SafeAreaView edges={['bottom']} style={styles.sheet}>
           <View style={styles.handle} />
-          <View style={styles.badge}>
-            <Icon name="trash" size={22} color={colors.danger} strokeWidth={2} />
+          <View style={styles.head}>
+            <View style={styles.badge}>
+              <Icon name="trash" size={26} color={colors.danger} strokeWidth={2} />
+            </View>
+            <Txt weight="extrabold" size={20} style={{ textAlign: 'center' }} accessibilityRole="header">
+              Hapus akun?
+            </Txt>
+            <Txt size={14} color={colors.muted} style={{ textAlign: 'center' }}>
+              Tindakan ini tidak bisa dibatalkan.
+            </Txt>
           </View>
-          <Txt weight="extrabold" size={18} accessibilityRole="header">
-            Hapus akun Ocean Space?
-          </Txt>
 
-          <View style={{ gap: 8 }}>
-            {consequences.map((text) => (
-              <View key={text} style={styles.point}>
-                <View style={styles.dot} />
-                <Txt size={14} color={colors.inkSoft} style={{ flex: 1, lineHeight: 20 }}>
-                  {text}
+          <View style={styles.list}>
+            {consequences.map((c, i) => (
+              <View key={c.text} style={[styles.point, i > 0 && styles.divider]}>
+                <Icon name={c.icon} size={18} color={colors.danger} strokeWidth={2} />
+                <Txt weight="medium" size={14} color={colors.ink} style={{ flex: 1 }}>
+                  {c.text}
                 </Txt>
               </View>
             ))}
           </View>
 
           <Field
-            label={`Ketik ${CONFIRM_WORD} untuk melanjutkan`}
+            label={`Ketik ${CONFIRM_WORD} untuk konfirmasi`}
             value={typed}
             onChangeText={setTyped}
             autoCapitalize="characters"
@@ -91,15 +99,19 @@ export function DeleteAccountSheet({ visible, points, vouchers, onClose, onDelet
             editable={!busy}
           />
 
-          <View style={{ gap: 10 }}>
+          <View style={{ gap: 4 }}>
             <Button
-              title="Hapus akun permanen"
-              variant="danger"
+              title="Hapus akun"
+              variant="destructive"
               loading={busy}
               disabled={typed.trim().toUpperCase() !== CONFIRM_WORD}
               onPress={confirm}
             />
-            <Button title="Batal" variant="secondary" disabled={busy} onPress={close} />
+            <Pressable accessibilityRole="button" disabled={busy} onPress={close} style={styles.cancel}>
+              <Txt weight="bold" size={15} color={colors.muted}>
+                Batal
+              </Txt>
+            </Pressable>
           </View>
         </SafeAreaView>
       </KeyboardAvoidingView>
@@ -119,7 +131,10 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   handle: { alignSelf: 'center', width: 40, height: 5, borderRadius: 3, backgroundColor: colors.line },
-  badge: { width: 48, height: 48, borderRadius: 14, backgroundColor: colors.dangerSoft, alignItems: 'center', justifyContent: 'center' },
-  point: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
-  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.danger, marginTop: 7 },
+  head: { alignItems: 'center', gap: 6, paddingTop: 4 },
+  badge: { width: 60, height: 60, borderRadius: 30, backgroundColor: colors.dangerSoft, alignItems: 'center', justifyContent: 'center', marginBottom: 6 },
+  list: { borderRadius: 14, backgroundColor: colors.ground, paddingHorizontal: 14 },
+  point: { flexDirection: 'row', gap: 12, alignItems: 'center', paddingVertical: 12 },
+  divider: { borderTopWidth: 1, borderTopColor: colors.line },
+  cancel: { minHeight: 48, alignItems: 'center', justifyContent: 'center' },
 });

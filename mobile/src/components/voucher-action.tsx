@@ -15,7 +15,7 @@ import { Button, Txt } from './ui';
  * Bagian bawah kartu promo voucher: klaim gratis, tukar poin, atau beli (bayar online lewat Xendit).
  */
 export function VoucherAction({ promo, onChanged }: { promo: Promo; onChanged?: () => void }) {
-  const { loyalty, refresh: refreshSession } = useSession();
+  const { status, loyalty, refresh: refreshSession } = useSession();
   const v = promo.voucher!;
   const [confirmingPoints, setConfirmingPoints] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -54,7 +54,22 @@ export function VoucherAction({ promo, onChanged }: { promo: Promo; onChanged?: 
   const lapsed = !paid && (order?.status === 'expired' || order?.status === 'canceled');
 
   let body;
-  if (paid) {
+  if (status === 'guest') {
+    // Klaim, tukar poin, dan beli butuh akun member.
+    body = (
+      <Row terms={terms}>
+        {v.state === 'sold_out' ? (
+          <Status text="Kuota habis" />
+        ) : (
+          <Pressable accessibilityRole="link" onPress={() => router.push('/login')} hitSlop={8}>
+            <Txt weight="bold" size={13} color={colors.accentText}>
+              Masuk untuk ambil ›
+            </Txt>
+          </Pressable>
+        )}
+      </Row>
+    );
+  } else if (paid) {
     body = (
       <Row terms={terms}>
         <Pressable accessibilityRole="link" onPress={() => router.push('/vouchers')} hitSlop={8}>

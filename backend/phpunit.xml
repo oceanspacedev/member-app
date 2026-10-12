@@ -18,6 +18,8 @@
         </include>
     </source>
     <php>
+        <!-- Scramble membuat dokumen OpenAPI dari seluruh route API; butuh lebih dari 128MB bawaan PHP. -->
+        <ini name="memory_limit" value="512M"/>
         <env name="APP_ENV" value="testing"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
@@ -32,6 +34,8 @@
         <env name="XENDIT_CALLBACK_TOKEN" value=""/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
+        <!-- Tes tidak pernah memanggil Gemini sungguhan; pembaca diganti tiruan per tes. -->
+        <env name="GEMINI_API_KEY" value=""/>
         <env name="SESSION_DRIVER" value="array"/>
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>

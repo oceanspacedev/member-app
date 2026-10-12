@@ -25,8 +25,8 @@ type VoucherResult = {
 };
 type Mode = 'earn' | 'redeem';
 
-/** QR voucher diawali "LCV1.", QR member "LC1.". */
-const isVoucherQr = (payload: string) => payload.startsWith('LCV1.');
+/** QR member diawali "LC1."; selain itu voucher: QR lama "LCV1." atau kode yang diketik (ABCDE-FGHJK). */
+const isVoucherQr = (payload: string) => !payload.startsWith('LC1.');
 
 /**
  * Mode kasir: scan QR member (catat belanja / tukar poin) atau QR voucher (potong tagihan).
@@ -143,7 +143,7 @@ export default function CashierScreen() {
           {!scan && !voucherScan && (
             <>
               <Txt weight="extrabold" size={20} accessibilityRole="header">
-                1. Scan QR member atau voucher
+                1. Scan QR member atau ketik kode voucher
               </Txt>
               {Platform.OS !== 'web' && permission?.granted ? (
                 <View style={styles.camera}>
@@ -158,21 +158,21 @@ export default function CashierScreen() {
               ) : Platform.OS !== 'web' ? (
                 <Card style={{ gap: 12 }}>
                   <Txt size={14} style={{ lineHeight: 20 }}>
-                    Izinkan akses kamera untuk memindai QR member dan voucher.
+                    Izinkan akses kamera untuk memindai QR member.
                   </Txt>
                   <Button title="Izinkan kamera" onPress={requestPermission} />
                 </Card>
               ) : null}
 
               <Field
-                label="Atau tempel kode QR (untuk uji coba)"
+                label="Kode voucher"
                 value={manual}
                 onChangeText={setManual}
-                autoCapitalize="none"
+                autoCapitalize="characters"
                 autoCorrect={false}
-                placeholder="LC1.… atau LCV1.…"
+                placeholder="ABCDE-FGHJK"
               />
-              <Button title="Cek QR" variant="secondary" onPress={() => lookup(manual.trim())} loading={busy} disabled={!manual.trim()} />
+              <Button title="Cek kode" variant="secondary" onPress={() => lookup(manual.trim())} loading={busy} disabled={!manual.trim()} />
             </>
           )}
 

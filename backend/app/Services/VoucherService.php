@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Outlet;
+use App\Models\PartnerKey;
 use App\Models\PointTransaction;
 use App\Models\Promo;
 use App\Models\User;
@@ -22,6 +23,9 @@ class VoucherService
 {
     /** Jeda minimum antar-pengecekan status ke gateway untuk satu tagihan (aplikasi mengecek berkala). */
     private const STATUS_CHECK_INTERVAL = 3;
+
+    /** Pemakaian voucher lewat API partner bisa dibatalkan POS dalam jangka waktu ini. */
+    public const PARTNER_CANCEL_HOURS = 24;
 
     public function __construct(
         private LoyaltyService $loyalty,
@@ -238,31 +242,7 @@ class VoucherService
      */
     public function redeem(Voucher $voucher, Outlet $outlet, int $amount, string $reference, User $cashier): array
     {
-        $existing = Voucher::where('outlet_id', $outlet->id)->where('reference', $reference)->first();
-
-        if ($existing && ! $existing->is($voucher)) {
-            $this->fail('Struk ini sudah memakai voucher lain.');
-        }
-
-        if (! $existing) {
-            try {
-                DB::transaction(function () use ($voucher, $outlet, $amount, $reference, $cashier) {
-                    $locked = Voucher::whereKey($voucher->id)->lockForUpdate()->firstOrFail();
-                    $this->ensureUsable($locked, $outlet, $amount);
-
-                    $locked->forceFill([
-                        'used_at' => now(),
-                        'outlet_id' => $outlet->id,
-                        'cashier_id' => $cashier->id,
-                        'reference' => $reference,
-                        'bill_amount' => $amount,
-                        'discount' => min($locked->value, $amount),
-                    ])->save();
-                });
-            } catch (UniqueConstraintViolationException) {
-                $this->fail('Struk ini sudah memakai voucher lain.');
-            }
-        }
+        $this->markUsed($voucher, $outlet, $amount, $reference, ['cashier_id' => $cashier->id]);
 
         $voucher->refresh();
         $paid = (int) $voucher->bill_amount - (int) $voucher->discount;
@@ -271,6 +251,96 @@ class VoucherService
             : null;
 
         return ['voucher' => $voucher, 'earn' => $earn];
+    }
+
+    /**
+     * Pakai voucher dari POS pihak ketiga (API partner). Aturannya sama dengan kasir kita dan idempoten
+     * per (outlet, nomor struk). Poin belum dicatat: belanjanya terjadi di POS yang bukan milik kita.
+     */
+    public function redeemForPartner(Voucher $voucher, PartnerKey $key, int $amount, string $reference): Voucher
+    {
+        $this->markUsed($voucher, $key->outlet, $amount, $reference, ['partner_key_id' => $key->id]);
+
+        return $voucher->refresh();
+    }
+
+    /**
+     * Batalkan pemakaian voucher dari POS (transaksi di POS dibatalkan/di-void), agar voucher bisa dipakai lagi.
+     * Hanya untuk struk yang sama, di outlet yang sama, dipakai lewat API partner, dalam batas waktu.
+     */
+    public function cancelForPartner(Voucher $voucher, PartnerKey $key, string $reference): Voucher
+    {
+        return DB::transaction(function () use ($voucher, $key, $reference) {
+            $locked = Voucher::whereKey($voucher->id)->lockForUpdate()->firstOrFail();
+
+            if (! $locked->used_at || $locked->outlet_id !== $key->outlet_id || $locked->reference !== $reference) {
+                $this->fail('Voucher ini tidak dipakai pada struk tersebut di outlet ini.');
+            }
+            if ($locked->partner_key_id === null) {
+                $this->fail('Voucher ini dipakai lewat kasir Ocean Space dan tidak bisa dibatalkan dari POS.');
+            }
+            if ($locked->used_at->lt(now()->subHours(self::PARTNER_CANCEL_HOURS))) {
+                $this->fail('Batas waktu pembatalan ('.self::PARTNER_CANCEL_HOURS.' jam) sudah lewat. Hubungi admin Ocean Space.');
+            }
+
+            $locked->forceFill([
+                'used_at' => null,
+                'outlet_id' => null,
+                'cashier_id' => null,
+                'partner_key_id' => null,
+                'reference' => null,
+                'bill_amount' => null,
+                'discount' => null,
+            ])->save();
+
+            return $locked;
+        });
+    }
+
+    /**
+     * Cari voucher dari kode yang diketik/discan kasir: abaikan huruf kecil, spasi, dan tanda hubung.
+     */
+    public function findByCode(string $code): ?Voucher
+    {
+        $normalized = strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $code) ?? '');
+
+        return $normalized === '' ? null : Voucher::with(['brand', 'outlet'])->where('code', $normalized)->first();
+    }
+
+    /**
+     * Tandai voucher terpakai untuk satu struk, tepat sekali walau request datang bersamaan.
+     *
+     * @param  array<string, int>  $by  cashier_id atau partner_key_id
+     */
+    private function markUsed(Voucher $voucher, Outlet $outlet, int $amount, string $reference, array $by): void
+    {
+        $existing = Voucher::where('outlet_id', $outlet->id)->where('reference', $reference)->first();
+
+        if ($existing && ! $existing->is($voucher)) {
+            $this->fail('Struk ini sudah memakai voucher lain.');
+        }
+
+        // Request ulang untuk struk yang sama (mis. koneksi POS putus): kembalikan hasil sebelumnya.
+        if ($existing) {
+            return;
+        }
+
+        try {
+            DB::transaction(function () use ($voucher, $outlet, $amount, $reference, $by) {
+                $locked = Voucher::whereKey($voucher->id)->lockForUpdate()->firstOrFail();
+                $this->ensureUsable($locked, $outlet, $amount);
+
+                $locked->forceFill($by + [
+                    'used_at' => now(),
+                    'outlet_id' => $outlet->id,
+                    'reference' => $reference,
+                    'bill_amount' => $amount,
+                    'discount' => min($locked->value, $amount),
+                ])->save();
+            });
+        } catch (UniqueConstraintViolationException) {
+            $this->fail('Struk ini sudah memakai voucher lain.');
+        }
     }
 
     /**

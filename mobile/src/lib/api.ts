@@ -1,4 +1,5 @@
 import Constants from 'expo-constants';
+import { File } from 'expo-file-system';
 import { Platform } from 'react-native';
 
 const CONFIGURED_URL = (process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8010/api/v1').replace(/\/$/, '');
@@ -40,15 +41,25 @@ export class ApiError extends Error {
   field(name: string): string | undefined {
     return this.errors[name]?.[0];
   }
+
+  /** Gagal karena koneksi (offline / server tidak menjawab), bukan karena server menolak. */
+  get isNetwork(): boolean {
+    return this.status === 0;
+  }
 }
+
+// Tanpa batas waktu, request di sinyal lemah bisa menggantung selamanya (loading tak berujung).
+const TIMEOUT_MS = 15_000;
+const UPLOAD_TIMEOUT_MS = 60_000;
 
 type Options = {
   method?: 'GET' | 'POST' | 'PATCH' | 'DELETE';
   body?: unknown;
   query?: Record<string, string | number | null | undefined>;
+  timeoutMs?: number;
 };
 
-export async function api<T>(path: string, { method = 'GET', body, query }: Options = {}): Promise<T> {
+export async function api<T>(path: string, { method = 'GET', body, query, timeoutMs = TIMEOUT_MS }: Options = {}): Promise<T> {
   const params = Object.entries(query ?? {})
     .filter(([, v]) => v !== null && v !== undefined && v !== '')
     .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`)
@@ -57,10 +68,16 @@ export async function api<T>(path: string, { method = 'GET', body, query }: Opti
   // FormData (upload file) dikirim apa adanya agar boundary multipart diisi otomatis.
   const isForm = typeof FormData !== 'undefined' && body instanceof FormData;
 
+  // Batas waktu mencakup koneksi sampai isi respons selesai dibaca.
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
   let response: Response;
+  let json: Record<string, unknown> & { errors?: Record<string, string[]>; message?: string };
   try {
     response = await fetch(`${BASE_URL}${path}${params ? `?${params}` : ''}`, {
       method,
+      signal: controller.signal,
       headers: {
         Accept: 'application/json',
         ...(body !== undefined && !isForm ? { 'Content-Type': 'application/json' } : {}),
@@ -68,11 +85,17 @@ export async function api<T>(path: string, { method = 'GET', body, query }: Opti
       },
       body: body === undefined ? undefined : isForm ? (body as FormData) : JSON.stringify(body),
     });
+    json = await response.json().catch(() => ({}));
   } catch {
-    throw new ApiError('Tidak bisa terhubung ke server. Periksa koneksi internet kamu.', 0);
+    throw new ApiError(
+      controller.signal.aborted
+        ? 'Koneksi lambat, server tidak merespons.'
+        : 'Tidak bisa terhubung ke server. Periksa koneksi internet kamu.',
+      0,
+    );
+  } finally {
+    clearTimeout(timer);
   }
-
-  const json = await response.json().catch(() => ({}));
 
   if (!response.ok) {
     if (response.status === 401 && authToken) {
@@ -88,15 +111,23 @@ export async function api<T>(path: string, { method = 'GET', body, query }: Opti
 
 export type UploadFile = { uri: string; name: string; type: string };
 
-/** Unggah satu file (multipart, field "file"). */
-export async function upload<T>(path: string, file: UploadFile): Promise<T> {
+/** Unggah satu file (multipart, default field "file"), opsional bersama isian teks lain. */
+export async function upload<T>(
+  path: string,
+  file: UploadFile,
+  { field = 'file', fields = {} }: { field?: string; fields?: Record<string, string> } = {},
+): Promise<T> {
   const form = new FormData();
+  Object.entries(fields).forEach(([k, v]) => form.append(k, v));
   if (Platform.OS === 'web') {
     // Di web, image picker memberi URI blob/data — ubah dulu menjadi Blob.
     const blob = await (await fetch(file.uri)).blob();
-    form.append('file', blob, file.name);
+    form.append(field, blob, file.name);
   } else {
-    form.append('file', file as unknown as Blob);
+    // fetch global di Expo adalah expo/fetch, yang tidak mendukung bagian FormData gaya React Native
+    // ({ uri, name, type } → "Unsupported FormDataPart implementation"). File dari expo-file-system
+    // adalah Blob sungguhan sehingga isinya ikut terkirim.
+    form.append(field, new File(file.uri), file.name);
   }
-  return api<T>(path, { method: 'POST', body: form });
+  return api<T>(path, { method: 'POST', body: form, timeoutMs: UPLOAD_TIMEOUT_MS });
 }

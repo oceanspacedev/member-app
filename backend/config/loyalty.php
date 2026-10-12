@@ -36,6 +36,30 @@ return [
     */
     'qr_ttl' => (int) env('LOYALTY_QR_TTL', 120),
 
+    /*
+    | Poin dari foto struk (outlet dengan POS pihak ketiga). Sistem yang memeriksa: foto dibaca
+    | otomatis (Gemini), dicek dengan aturan di bawah, lalu poin langsung masuk bila lolos.
+    | Hanya struk yang meragukan yang masuk antrean admin, dengan data yang sudah terisi.
+    */
+    'receipts' => [
+        'max_age_days' => (int) env('LOYALTY_RECEIPT_MAX_AGE_DAYS', 7),
+        'daily_limit' => (int) env('LOYALTY_RECEIPT_DAILY_LIMIT', 5),
+
+        // gemini = baca otomatis dengan Gemini (butuh GEMINI_API_KEY); none = semua ke admin.
+        'reader' => env('LOYALTY_RECEIPT_READER', 'gemini'),
+        'model' => env('LOYALTY_RECEIPT_MODEL', 'gemini-3.8-flash'),
+        'gemini_key' => env('GEMINI_API_KEY'),
+
+        // Di atas batas ini selalu diperiksa admin, sekecil apa pun kecurigaannya.
+        'auto_approve_max_amount' => (int) env('LOYALTY_RECEIPT_AUTO_MAX_AMOUNT', 2_000_000),
+        // Keyakinan minimum hasil baca agar boleh disetujui tanpa admin (0-1).
+        'min_confidence' => (float) env('LOYALTY_RECEIPT_MIN_CONFIDENCE', 0.85),
+        // Struk disetujui otomatis per member per outlet per hari; lebih dari ini diperiksa admin.
+        'auto_per_outlet_per_day' => (int) env('LOYALTY_RECEIPT_AUTO_PER_OUTLET_DAY', 2),
+        // true = diperiksa lewat antrean (Horizon/worker); false = langsung setelah respons dikirim.
+        'queue' => (bool) env('LOYALTY_RECEIPT_QUEUE', false),
+    ],
+
     'otp' => [
         'length' => 6,
         'ttl' => 300,
