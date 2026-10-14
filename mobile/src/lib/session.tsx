@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { AppState } from 'react-native';
+import { AppState, DevSettings, Platform } from 'react-native';
 
 import { api, ApiError, setAuthToken, setUnauthorizedHandler } from './api';
 import { getItem, setItem } from './storage';
@@ -10,8 +10,20 @@ const TOKEN_KEY = 'lc.token';
 const GUEST_KEY = 'lc.guest';
 // Data akun terakhir, agar aplikasi tetap terbuka saat dibuka tanpa internet.
 const ME_KEY = 'lc.me';
+// Pengenalan aplikasi (onboarding) hanya tampil sekali, pada pembukaan pertama setelah dipasang.
+const ONBOARDED_KEY = 'lc.onboarded';
 
 type Me = { user: User; loyalty: Loyalty | null };
+
+/**
+ * Khusus pengembangan: hapus data lokal (login, mode tamu, pengenalan) lalu muat ulang, supaya alur
+ * pembukaan pertama bisa dicoba lagi tanpa memasang ulang aplikasi.
+ */
+export async function resetLocalDataForDev() {
+  await Promise.all([TOKEN_KEY, GUEST_KEY, ME_KEY, ONBOARDED_KEY].map((key) => setItem(key, null)));
+  if (Platform.OS === 'web') globalThis.location?.reload();
+  else DevSettings.reload();
+}
 
 async function readCachedMe(): Promise<Me | null> {
   try {
@@ -29,9 +41,12 @@ type SessionValue = {
   status: Status;
   user: User | null;
   loyalty: Loyalty | null;
+  /** Sudah pernah melewati layar pengenalan (atau sudah login / memilih mode tamu). */
+  onboarded: boolean;
   signIn: (token: string, user: User) => Promise<void>;
   signOut: () => Promise<void>;
   continueAsGuest: () => Promise<void>;
+  completeOnboarding: () => void;
   refresh: () => Promise<void>;
   setUser: (user: User) => void;
 };
@@ -42,6 +57,12 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<Status>('loading');
   const [user, setUser] = useState<User | null>(null);
   const [loyalty, setLoyalty] = useState<Loyalty | null>(null);
+  const [onboarded, setOnboarded] = useState(false);
+
+  const completeOnboarding = useCallback(() => {
+    setOnboarded(true);
+    void setItem(ONBOARDED_KEY, '1').catch(() => undefined);
+  }, []);
 
   const clear = useCallback(async () => {
     setAuthToken(null);
@@ -64,9 +85,16 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     setUnauthorizedHandler(() => void clear());
 
     (async () => {
+      const seenIntro = await getItem(ONBOARDED_KEY).catch(() => null);
       const token = await getItem(TOKEN_KEY);
-      if (!token) return setStatus((await getItem(GUEST_KEY)) ? 'guest' : 'signedOut');
+      if (!token) {
+        const guest = await getItem(GUEST_KEY);
+        // Sudah jadi tamu = sudah pernah masuk ke aplikasi, jadi tidak perlu pengenalan lagi.
+        setOnboarded(!!seenIntro || !!guest);
+        return setStatus(guest ? 'guest' : 'signedOut');
+      }
 
+      setOnboarded(true);
       setAuthToken(token);
 
       // Ada data akun tersimpan: buka aplikasi langsung, sinkronkan di belakang layar
@@ -103,11 +131,12 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       setAuthToken(token);
       await setItem(TOKEN_KEY, token);
       await setItem(GUEST_KEY, null);
+      completeOnboarding();
       setUser(signedInUser);
       await refresh().catch(() => undefined);
       setStatus('signedIn');
     },
-    [refresh],
+    [refresh, completeOnboarding],
   );
 
   const signOut = useCallback(async () => {
@@ -126,12 +155,13 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   const continueAsGuest = useCallback(async () => {
     await setItem(GUEST_KEY, '1');
+    completeOnboarding();
     setStatus('guest');
-  }, []);
+  }, [completeOnboarding]);
 
   const value = useMemo(
-    () => ({ status, user, loyalty, signIn, signOut, continueAsGuest, refresh, setUser }),
-    [status, user, loyalty, signIn, signOut, continueAsGuest, refresh],
+    () => ({ status, user, loyalty, onboarded, signIn, signOut, continueAsGuest, completeOnboarding, refresh, setUser }),
+    [status, user, loyalty, onboarded, signIn, signOut, continueAsGuest, completeOnboarding, refresh],
   );
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;

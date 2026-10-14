@@ -33,7 +33,7 @@ export function TierCard({ tier, status, remaining }: { tier: Tier; status: Tier
       <View style={styles.row}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
           <LogoGlyph size={16} />
-          <Txt weight="semibold" size={11} color="#FFFFFF" style={{ opacity: 0.9 }}>
+          <Txt weight="semibold" size={11} color="#FFFFFF">
             Ocean Space
           </Txt>
         </View>
@@ -50,7 +50,7 @@ export function TierCard({ tier, status, remaining }: { tier: Tier; status: Tier
         <Txt weight="extrabold" size={22} color="#FFFFFF" style={{ letterSpacing: 3 }}>
           {tier.label.toUpperCase()}
         </Txt>
-        <Txt size={12} color="#FFFFFF" style={{ opacity: 0.85 }}>
+        <Txt weight="medium" size={12} color="#FFFFFF">
           {requirement}
         </Txt>
       </View>

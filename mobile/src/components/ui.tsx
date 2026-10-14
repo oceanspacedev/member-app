@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import type { ReactNode } from 'react';
+import { useState, type ReactNode, type Ref } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -17,13 +17,17 @@ import {
 
 import { colors, fonts, type FontWeight } from '@/constants/theme';
 import { initials } from '@/lib/format';
+import { haptics } from '@/lib/haptics';
 
 import { Icon, type IconName } from './icon';
 
 type TxtProps = TextProps & { weight?: FontWeight; size?: number; color?: string; style?: StyleProp<TextStyle> };
 
+// Pengaturan "ukuran teks besar" di HP boleh membesarkan teks, tapi dibatasi agar tata letak tidak pecah.
+export const MAX_FONT_SCALE = 1.3;
+
 export function Txt({ weight = 'regular', size = 14, color = colors.ink, style, ...rest }: TxtProps) {
-  return <Text {...rest} style={[{ fontFamily: fonts[weight], fontSize: size, color }, style]} />;
+  return <Text maxFontSizeMultiplier={MAX_FONT_SCALE} {...rest} style={[{ fontFamily: fonts[weight], fontSize: size, color }, style]} />;
 }
 
 type ButtonProps = Omit<PressableProps, 'style'> & {
@@ -57,7 +61,7 @@ export function Button({ title, variant = 'primary', loading, disabled, icon, le
       disabled={inactive}
       style={({ pressed }) => [
         styles.button,
-        { backgroundColor: v.bg, borderColor: v.border, opacity: inactive ? 0.6 : pressed ? 0.85 : 1 },
+        { backgroundColor: v.bg, borderColor: v.border, opacity: inactive ? 0.6 : pressed ? 0.85 : 1, transform: [{ scale: pressed && !inactive ? 0.98 : 1 }] },
         style,
       ]}
       {...rest}>
@@ -80,9 +84,12 @@ export function Card({ children, style }: { children: ReactNode; style?: StylePr
   return <View style={[styles.card, style]}>{children}</View>;
 }
 
-type FieldProps = TextInputProps & { label: string; error?: string; prefix?: string; hint?: ReactNode; required?: boolean };
+type FieldProps = TextInputProps & { label: string; error?: string; prefix?: string; hint?: ReactNode; required?: boolean; ref?: Ref<TextInput> };
 
-export function Field({ label, error, prefix, hint, required, style, ...rest }: FieldProps) {
+export function Field({ label, error, prefix, hint, required, style, onFocus, onBlur, ...rest }: FieldProps) {
+  // Bingkai menebal saat kolom dipilih, supaya jelas mana yang sedang diisi.
+  const [focused, setFocused] = useState(false);
+
   return (
     <View style={{ gap: 6 }}>
       <Txt weight="semibold" size={13} color={colors.inkSoft}>
@@ -93,7 +100,7 @@ export function Field({ label, error, prefix, hint, required, style, ...rest }: 
           </Txt>
         )}
       </Txt>
-      <View style={[styles.input, error ? { borderColor: colors.danger } : null]}>
+      <View style={[styles.input, focused && { borderColor: colors.primary }, error ? { borderColor: colors.danger } : null]}>
         {prefix && (
           <View style={styles.prefix}>
             <Txt weight="bold" size={15}>
@@ -104,7 +111,17 @@ export function Field({ label, error, prefix, hint, required, style, ...rest }: 
         <TextInput
           accessibilityLabel={label}
           placeholderTextColor={colors.subtle}
+          maxFontSizeMultiplier={MAX_FONT_SCALE}
+          selectionColor={colors.accentText}
           style={[styles.inputText, style]}
+          onFocus={(e) => {
+            setFocused(true);
+            onFocus?.(e);
+          }}
+          onBlur={(e) => {
+            setFocused(false);
+            onBlur?.(e);
+          }}
           {...rest}
         />
       </View>
@@ -124,7 +141,10 @@ export function Chip({ label, active, onPress }: { label: string; active: boolea
     <Pressable
       accessibilityRole="button"
       accessibilityState={{ selected: active }}
-      onPress={onPress}
+      onPress={() => {
+        if (!active) haptics.select();
+        onPress();
+      }}
       style={[styles.chip, active ? { backgroundColor: colors.primary, borderColor: colors.primary } : null]}>
       <Txt weight="bold" size={13} color={active ? '#FFFFFF' : colors.ink}>
         {label}

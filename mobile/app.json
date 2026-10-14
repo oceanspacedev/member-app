@@ -7,14 +7,23 @@
     "icon": "./assets/images/icon.png",
     "scheme": "oceanspace",
     "userInterfaceStyle": "light",
+    "primaryColor": "#18181B",
     "ios": {
-      "icon": "./assets/images/icon.png"
+      "bundleIdentifier": "id.co.oceanspace.member",
+      "icon": {
+        "light": "./assets/images/icon.png",
+        "dark": "./assets/images/ios-dark.png",
+        "tinted": "./assets/images/ios-tinted.png"
+      },
+      "config": {
+        "usesNonExemptEncryption": false
+      }
     },
     "android": {
+      "package": "id.co.oceanspace.member",
       "adaptiveIcon": {
         "backgroundColor": "#18181B",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false
@@ -33,26 +42,35 @@
           "imageWidth": 110
         }
       ],
-      "expo-secure-store",
+      [
+        "expo-secure-store",
+        {
+          "faceIDPermission": false
+        }
+      ],
       [
         "expo-camera",
         {
-          "cameraPermission": "Izinkan $(PRODUCT_NAME) memakai kamera untuk memindai QR member di kasir.",
-          "recordAudioAndroid": false
+          "cameraPermission": "Izinkan $(PRODUCT_NAME) memakai kamera untuk memotret struk belanja dan foto profil, serta memindai QR di kasir.",
+          "recordAudioAndroid": false,
+          "microphonePermission": false
         }
       ],
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Izinkan $(PRODUCT_NAME) memakai lokasi untuk menampilkan outlet terdekat."
+          "locationWhenInUsePermission": "Izinkan $(PRODUCT_NAME) memakai lokasi untuk menampilkan outlet terdekat.",
+          "locationAlwaysAndWhenInUsePermission": false,
+          "locationAlwaysPermission": false,
+          "motionUsagePermission": false
         }
       ],
       "expo-image",
       [
         "expo-image-picker",
         {
-          "photosPermission": "Izinkan $(PRODUCT_NAME) mengakses galeri untuk memilih foto profil.",
-          "cameraPermission": "Izinkan $(PRODUCT_NAME) memakai kamera untuk memotret foto profil dan memindai QR member.",
+          "photosPermission": "Izinkan $(PRODUCT_NAME) mengakses galeri untuk memilih foto struk belanja dan foto profil.",
+          "cameraPermission": "Izinkan $(PRODUCT_NAME) memakai kamera untuk memotret struk belanja dan foto profil, serta memindai QR di kasir.",
           "microphonePermission": false
         }
       ]

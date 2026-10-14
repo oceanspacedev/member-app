@@ -5,7 +5,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Icon } from '@/components/icon';
 import { PromoCard } from '@/components/promo-card';
-import { Banner, Chip, Loading, Txt } from '@/components/ui';
+import { PromoListSkeleton } from '@/components/skeleton';
+import { EmptyState, ErrorState } from '@/components/state';
+import { Chip, Txt } from '@/components/ui';
 import { categories, colors } from '@/constants/theme';
 import { useSession } from '@/lib/session';
 import type { Promo } from '@/lib/types';
@@ -30,6 +32,12 @@ export default function PromoScreen() {
   if (params.jenis !== seenParam) {
     setSeenParam(params.jenis);
     setJenis(asJenis(params.jenis));
+  }
+
+  function showAll() {
+    setCategory(null);
+    setJenis(null);
+    router.setParams({ jenis: '' });
   }
 
   const filter = jenis ? JENIS[jenis] : null;
@@ -85,12 +93,10 @@ export default function PromoScreen() {
         )}
       </View>
 
-      {error ? (
-        <View style={{ padding: 16 }}>
-          <Banner tone="error" text={error} />
-        </View>
+      {error && !data ? (
+        <ErrorState message={error} onRetry={reload} />
       ) : loading && !data ? (
-        <Loading />
+        <PromoListSkeleton />
       ) : (
         <FlatList
           data={items}
@@ -99,9 +105,12 @@ export default function PromoScreen() {
           contentContainerStyle={{ padding: 16, paddingTop: filter ? 12 : 4, paddingBottom: 48, gap: 14 }}
           refreshControl={<RefreshControl refreshing={loading} onRefresh={reload} tintColor={colors.primary} />}
           ListEmptyComponent={
-            <Txt size={14} color={colors.muted} style={{ textAlign: 'center', marginTop: 24 }}>
-              {filter?.empty ?? 'Belum ada promo di kategori ini.'}
-            </Txt>
+            <EmptyState
+              icon="tag"
+              title="Belum ada promo"
+              text={filter?.empty ?? 'Belum ada promo di kategori ini.'}
+              action={category || filter ? { label: 'Lihat semua promo', onPress: showAll } : undefined}
+            />
           }
         />
       )}

@@ -9,7 +9,9 @@ import { LogoGlyph } from '@/components/logo';
 import { MenuIcon, type MenuIconName } from '@/components/menu-icon';
 import { OutletRow, OutletSeparator } from '@/components/outlet-row';
 import { PromoCarousel } from '@/components/promo-carousel';
-import { Banner, Txt } from '@/components/ui';
+import { OutletListSkeleton, PromoCardSkeleton, SkeletonGroup } from '@/components/skeleton';
+import { ErrorState } from '@/components/state';
+import { Txt } from '@/components/ui';
 import { WordReveal } from '@/components/word-reveal';
 import { colors } from '@/constants/theme';
 import { greeting, number, rupiah, rupiahShort } from '@/lib/format';
@@ -44,6 +46,9 @@ export default function HomeScreen() {
   const hello = user ? `Halo, ${user.name?.split(' ')[0] ?? ''}` : 'Halo, Tamu';
   const nearby = (outlets.data?.data ?? []).slice(0, 3);
   const allPromos = promos.data?.data ?? [];
+  // Pertama kali memuat: tampilkan kerangka, bukan layar kosong yang lalu "melompat" saat data tiba.
+  const promosLoading = !promos.data && !promos.error;
+  const outletsLoading = !outlets.data && !outlets.error;
   const rewards = allPromos.filter((p) => p.voucher?.price_points != null);
   const progress = loyalty?.next_tier_spend ? Math.min(1, loyalty.annual_spend / loyalty.next_tier_spend) : 1;
 
@@ -135,11 +140,15 @@ export default function HomeScreen() {
           </Txt>
         </Pressable>
 
-        {/* Promo & outlet gagal dimuat (offline / koneksi lambat): beri tahu, jangan biarkan kosong. */}
+        {/* Promo & outlet gagal dimuat (offline / koneksi lambat): jelaskan dan beri tombol coba lagi, jangan biarkan kosong. */}
         {(promos.error || outlets.error) && !promos.data && !outlets.data && (
-          <View style={{ paddingHorizontal: 16, paddingTop: 12 }}>
-            <Banner tone="error" text={`${promos.error ?? outlets.error} Tarik ke bawah untuk coba lagi.`} />
-          </View>
+          <ErrorState
+            message={(promos.error ?? outlets.error)!}
+            onRetry={() => {
+              promos.reload();
+              outlets.reload();
+            }}
+          />
         )}
 
         <View style={styles.menu}>
@@ -188,10 +197,16 @@ export default function HomeScreen() {
           </Pressable>
         )}
 
-        {allPromos.length > 0 && (
+        {(allPromos.length > 0 || promosLoading) && (
           <View style={styles.section}>
             <SectionHeader title="Promo pilihan" action="Semua promo" onPress={() => router.navigate({ pathname: '/promo', params: { jenis: '' } })} />
-            <PromoCarousel promos={allPromos.slice(0, 6)} />
+            {promosLoading ? (
+              <SkeletonGroup style={{ paddingHorizontal: 16 }}>
+                <PromoCardSkeleton />
+              </SkeletonGroup>
+            ) : (
+              <PromoCarousel promos={allPromos.slice(0, 6)} />
+            )}
           </View>
         )}
 
@@ -227,17 +242,21 @@ export default function HomeScreen() {
           </View>
         )}
 
-        {nearby.length > 0 && (
+        {(nearby.length > 0 || outletsLoading) && (
           <View style={styles.section}>
             <SectionHeader title={location.coords ? 'Outlet terdekat' : 'Outlet'} action="Semua outlet" onPress={() => router.navigate('/outlets')} />
-            <View>
-              {nearby.map((o, i) => (
-                <View key={o.id}>
-                  {i > 0 && <OutletSeparator />}
-                  <OutletRow outlet={o} />
-                </View>
-              ))}
-            </View>
+            {outletsLoading ? (
+              <OutletListSkeleton count={3} />
+            ) : (
+              <View>
+                {nearby.map((o, i) => (
+                  <View key={o.id}>
+                    {i > 0 && <OutletSeparator />}
+                    <OutletRow outlet={o} />
+                  </View>
+                ))}
+              </View>
+            )}
           </View>
         )}
       </ScrollView>

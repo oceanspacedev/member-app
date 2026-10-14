@@ -104,6 +104,43 @@ const paths = {
   ),
   receipt: <Path d="M6 3h12v18l-2.5-1.5L13 21l-2.5-1.5L8 21l-2-1.2zM9 8h6M9 12h6M9 16h3" />,
   crown: <Path d="m3 8 4.5 4L12 5l4.5 7L21 8l-2 11H5zM5 21h14" />,
+  // Keadaan kosong, offline, dan info
+  wifiOff: (
+    <>
+      <Path d="M12 20h.01M8.5 16.43a5 5 0 0 1 7 0M5 12.86a10 10 0 0 1 5.17-2.69M19 12.86a10 10 0 0 0-2-1.52M2 8.82a15 15 0 0 1 4.18-2.64M22 8.82a15 15 0 0 0-11.29-3.76" />
+      <Path d="m2 2 20 20" />
+    </>
+  ),
+  inbox: (
+    <>
+      <Path d="M22 12h-6l-2 3h-4l-2-3H2" />
+      <Path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" />
+    </>
+  ),
+  copy: (
+    <>
+      <Rect x={8} y={8} width={14} height={14} rx={2} />
+      <Path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+    </>
+  ),
+  help: (
+    <>
+      <Circle cx={12} cy={12} r={10} />
+      <Path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01" />
+    </>
+  ),
+  file: (
+    <>
+      <Path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z" />
+      <Path d="M14 2v4a2 2 0 0 0 2 2h4M10 9H8M16 13H8M16 17H8" />
+    </>
+  ),
+  lock: (
+    <>
+      <Rect x={3} y={11} width={18} height={11} rx={2} />
+      <Path d="M7 11V7a5 5 0 0 1 10 0v4" />
+    </>
+  ),
 } as const;
 
 export type IconName = keyof typeof paths;

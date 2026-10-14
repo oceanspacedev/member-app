@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Icon, type IconName } from '@/components/icon';
 import { TierCard } from '@/components/member-card';
+import { ErrorState } from '@/components/state';
 import { Button, Loading, ScreenHeader, Txt } from '@/components/ui';
 import { colors } from '@/constants/theme';
 import { rupiah } from '@/lib/format';
@@ -14,7 +15,7 @@ import { useApi } from '@/lib/use-api';
 /** Level member (Silver/Gold/Platinum): cara kerja dan benefit tiap level. */
 export default function TiersScreen() {
   const { status, loyalty } = useSession();
-  const { data } = useApi<{ point_value: number; tiers: Tier[] }>('/tiers');
+  const { data, error, reload } = useApi<{ point_value: number; tiers: Tier[] }>('/tiers');
   const tiers = data?.tiers ?? [];
   const currentIndex = tiers.findIndex((t) => t.key === loyalty?.tier);
 
@@ -27,7 +28,9 @@ export default function TiersScreen() {
   return (
     <SafeAreaView style={{ flex: 1 }} edges={['top']}>
       <ScreenHeader title="Level Member" />
-      {!data ? (
+      {!data && error ? (
+        <ErrorState message={error} onRetry={reload} />
+      ) : !data ? (
         <Loading />
       ) : (
         <ScrollView contentContainerStyle={styles.body}>

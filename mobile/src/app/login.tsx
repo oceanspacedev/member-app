@@ -3,12 +3,20 @@ import { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { GoogleLogo } from '@/components/icon';
+import { WhatsAppLogo } from '@/components/icon';
 import { LogoMark } from '@/components/logo';
 import { Banner, Button, Field, Txt } from '@/components/ui';
 import { colors } from '@/constants/theme';
 import { api, ApiError } from '@/lib/api';
+import { haptics } from '@/lib/haptics';
+import { legalUrls, openWebPage } from '@/lib/links';
 import { useSession } from '@/lib/session';
+
+/** "0812-3456-7890" / "+62 812 3456 7890" → "812 3456 7890": nomor lokal tanpa 0/62 di depan, dikelompokkan agar mudah dicek. */
+function formatLocalPhone(raw: string): string {
+  const digits = raw.replace(/\D/g, '').replace(/^0+/, '').replace(/^62/, '').slice(0, 13);
+  return [digits.slice(0, 3), digits.slice(3, 7), digits.slice(7)].filter(Boolean).join(' ');
+}
 
 export default function LoginScreen() {
   const { status, continueAsGuest } = useSession();
@@ -22,31 +30,25 @@ export default function LoginScreen() {
   }, [choseGuest, guest]);
   const [phone, setPhone] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [info, setInfo] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const digits = phone.replace(/\D/g, '');
 
   async function requestOtp() {
+    if (digits.length < 9 || loading) return;
     setError(null);
-    setInfo(null);
     setLoading(true);
     try {
       const res = await api<{ phone: string; resend_in: number }>('/auth/otp/request', {
         method: 'POST',
-        body: { phone: `62${phone.replace(/\D/g, '').replace(/^0+/, '').replace(/^62/, '')}` },
+        body: { phone: `62${digits}` },
       });
       router.push({ pathname: '/otp', params: { phone: res.phone, resendIn: String(res.resend_in) } });
     } catch (e) {
+      haptics.error();
       setError(e instanceof ApiError ? e.message : 'Gagal mengirim OTP.');
     } finally {
       setLoading(false);
     }
-  }
-
-  // Login Google butuh development build + Client ID Google (tidak tersedia di Expo Go).
-  // Backend /auth/google sudah siap; sambungkan @react-native-google-signin saat build rilis.
-  function signInWithGoogle() {
-    setError(null);
-    setInfo('Masuk dengan Google segera hadir. Untuk sekarang, masuk dengan nomor WhatsApp.');
   }
 
   return (
@@ -60,7 +62,7 @@ export default function LoginScreen() {
                 Masuk ke Ocean Space
               </Txt>
               <Txt size={14} color={colors.muted} style={{ lineHeight: 20 }}>
-                Kumpulkan poin dan pakai voucher member di semua outlet.
+                Kumpulkan poin dan pakai voucher member di semua outlet. Tanpa password, cukup kode dari WhatsApp.
               </Txt>
             </View>
 
@@ -73,36 +75,25 @@ export default function LoginScreen() {
               autoComplete="tel"
               textContentType="telephoneNumber"
               value={phone}
-              onChangeText={setPhone}
+              onChangeText={(text) => {
+                setPhone(formatLocalPhone(text));
+                if (error) setError(null);
+              }}
               onSubmitEditing={requestOtp}
               returnKeyType="send"
               hint={
-                <Txt size={12} color={colors.muted}>
-                  Kode OTP akan dikirim ke WhatsApp nomor ini.
-                </Txt>
+                <View style={styles.hint}>
+                  <WhatsAppLogo size={14} />
+                  <Txt size={12} color={colors.muted}>
+                    Kode OTP akan dikirim ke WhatsApp nomor ini.
+                  </Txt>
+                </View>
               }
             />
 
             {error && <Banner tone="error" text={error} />}
 
-            <Button
-              title="Kirim kode OTP"
-              variant="brass"
-              onPress={requestOtp}
-              loading={loading}
-              disabled={phone.replace(/\D/g, '').length < 9}
-            />
-
-            <View style={styles.divider} accessibilityRole="text">
-              <View style={styles.line} />
-              <Txt weight="bold" size={12} color={colors.subtle} style={{ letterSpacing: 1 }}>
-                ATAU MASUK DENGAN
-              </Txt>
-              <View style={styles.line} />
-            </View>
-
-            <Button title="Google" variant="secondary" leading={<GoogleLogo size={22} />} onPress={signInWithGoogle} />
-            {info && <Banner text={info} />}
+            <Button title="Kirim kode OTP" variant="brass" onPress={requestOtp} loading={loading} disabled={digits.length < 9} />
           </View>
 
           <View style={styles.footer}>
@@ -121,7 +112,15 @@ export default function LoginScreen() {
             </Pressable>
 
             <Txt size={12} color={colors.muted} style={styles.terms}>
-              Dengan masuk, kamu menyetujui Syarat & Ketentuan dan Kebijakan Privasi Ocean Space.
+              Dengan masuk, kamu menyetujui{' '}
+              <Txt weight="bold" size={12} color={colors.ink} accessibilityRole="link" onPress={() => void openWebPage(legalUrls.terms)}>
+                Syarat & Ketentuan
+              </Txt>{' '}
+              dan{' '}
+              <Txt weight="bold" size={12} color={colors.ink} accessibilityRole="link" onPress={() => void openWebPage(legalUrls.privacy)}>
+                Kebijakan Privasi
+              </Txt>{' '}
+              Ocean Space.
             </Txt>
           </View>
         </ScrollView>
@@ -135,10 +134,9 @@ const styles = StyleSheet.create({
   scroll: { flexGrow: 1, paddingHorizontal: 24, paddingTop: 48, paddingBottom: 24, gap: 32, width: '100%', maxWidth: 480, alignSelf: 'center' },
   content: { gap: 18 },
   brand: { gap: 6, marginBottom: 10 },
+  hint: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   // Tombol tamu & syarat menempel di bawah layar.
   footer: { marginTop: 'auto', gap: 20 },
-  divider: { flexDirection: 'row', alignItems: 'center', gap: 14 },
-  line: { flex: 1, height: 1, backgroundColor: colors.line },
-  guest: { alignItems: 'center', alignSelf: 'center', paddingHorizontal: 12 },
-  terms: { textAlign: 'center', lineHeight: 18, maxWidth: 320, alignSelf: 'center' },
+  guest: { alignItems: 'center', alignSelf: 'center', paddingHorizontal: 12, minHeight: 44, justifyContent: 'center' },
+  terms: { textAlign: 'center', lineHeight: 19, maxWidth: 320, alignSelf: 'center' },
 });

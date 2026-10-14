@@ -6,7 +6,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Icon, WhatsAppLogo } from '@/components/icon';
 import { BrandAvatar, Photo, Scrim } from '@/components/media';
 import { PromoCard } from '@/components/promo-card';
-import { Banner, Card, Loading, ScreenHeader, Txt } from '@/components/ui';
+import { ErrorState } from '@/components/state';
+import { Card, Loading, ScreenHeader, Txt } from '@/components/ui';
 import { colors } from '@/constants/theme';
 import { jam } from '@/lib/format';
 import type { Outlet, Promo } from '@/lib/types';
@@ -25,7 +26,7 @@ const TODAY = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'][new Date().getDa
 
 export default function OutletDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { data, error, loading } = useApi<{ data: Outlet }>(`/outlets/${id}`);
+  const { data, error, loading, reload } = useApi<{ data: Outlet }>(`/outlets/${id}`);
   const outlet = data?.data;
   const promos = useApi<{ data: Promo[] }>(outlet?.brand ? '/promos' : null, { brand_id: outlet?.brand?.id });
 
@@ -33,9 +34,7 @@ export default function OutletDetailScreen() {
     return (
       <SafeAreaView style={{ flex: 1 }}>
         <ScreenHeader title="Outlet" />
-        <View style={{ padding: 16 }}>
-          <Banner tone="error" text={error} />
-        </View>
+        <ErrorState message={error} onRetry={reload} />
       </SafeAreaView>
     );
   }

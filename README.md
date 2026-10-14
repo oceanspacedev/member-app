@@ -17,17 +17,19 @@ Repositori ini berisi dua aplikasi yang memakai **satu database yang sama**:
 2. [Arsitektur](#arsitektur)
 3. [Teknologi](#teknologi)
 4. [Struktur folder](#struktur-folder)
-5. [Menjalankan di komputer](#menjalankan-di-komputer)
-6. [Konfigurasi `.env`](#konfigurasi-env)
-7. [Akun demo](#akun-demo)
-8. [Aturan bisnis](#aturan-bisnis)
-9. [Alur (flow)](#alur-flow)
-10. [Panel admin](#panel-admin)
-11. [API](#api)
-12. [Pengujian](#pengujian)
-13. [Deploy ke produksi](#deploy-ke-produksi)
-14. [Keamanan](#keamanan)
-15. [Roadmap](#roadmap)
+5. [Mulai kontribusi (repo & submodule)](#mulai-kontribusi-repo--submodule)
+6. [Menjalankan di komputer](#menjalankan-di-komputer)
+7. [Konfigurasi `.env`](#konfigurasi-env)
+8. [Akun demo](#akun-demo)
+9. [Aturan bisnis](#aturan-bisnis)
+10. [Alur (flow)](#alur-flow)
+11. [Panel admin](#panel-admin)
+12. [API](#api)
+13. [Pengujian](#pengujian)
+14. [Deploy ke produksi](#deploy-ke-produksi)
+15. [Rilis ke App Store & Play Store](#rilis-ke-app-store--play-store)
+16. [Keamanan](#keamanan)
+17. [Roadmap](#roadmap)
 
 ---
 
@@ -44,6 +46,14 @@ Repositori ini berisi dua aplikasi yang memakai **satu database yang sama**:
 - **Direktori**: outlet terdekat dari GPS (jam buka, Maps, telepon, WhatsApp) dan daftar brand per kategori.
 - **Profil**: foto profil (galeri/kamera), data diri, riwayat, dan **hapus akun** (konfirmasi dengan mengetik HAPUS).
 - Layar pembuka beranimasi, tampilan monokrom + emas dengan ikon khas berbasis logo.
+
+### Landing page publik (`/`)
+
+- Halaman depan backend menjelaskan Ocean Space Member Club: fitur, cara kerja, level, brand, FAQ, dan **tombol unduh Play Store / App Store**. Brand, jumlah outlet, level, nilai poin, dan aturan struk diambil dari database dan `config/loyalty.php`, jadi ikut berubah otomatis.
+- Tombol unduh tampil **"Segera hadir"** sampai `PLAY_STORE_URL` / `APP_STORE_URL` diisi di `backend/.env` (hanya tautan `https://` yang dipakai).
+- **`/unduh`**: tautan pendek untuk QR, poster, dan bio media sosial. iPhone diarahkan ke App Store, Android ke Play Store, sisanya ke bagian unduh di landing page.
+- Tanpa framework dan tanpa JavaScript, font di-host sendiri (tidak ada permintaan ke pihak ketiga), mendukung "kurangi gerakan", dan memuat meta SEO, gambar pratinjau tautan, serta data terstruktur FAQ.
+- File: `backend/resources/views/landing.blade.php`, `backend/public/css/landing.css`, controller `LandingController`. Gambar aplikasi di `backend/public/images/landing/` adalah tangkapan layar dengan data demo; ganti dengan file bernama sama setelah foto brand asli terpasang.
 
 ### Mode Kasir (di aplikasi yang sama, untuk akun kasir/admin)
 
@@ -109,7 +119,7 @@ Panel dan aplikasi membaca database yang sama, jadi perubahan di panel (promo, o
 
 ```
 .
-├── backend/                     # Laravel
+├── backend/                     # Laravel — submodule → repo oceanspacedev/member-web
 │   ├── app/
 │   │   ├── Filament/            # Panel admin: resource, halaman login, widget
 │   │   ├── Http/Controllers/Api # Auth, Directory, Profile, Voucher, VoucherOrder, Pos
@@ -129,6 +139,71 @@ Panel dan aplikasi membaca database yang sama, jadi perubahan di panel (promo, o
 ├── jalankan-hp.bat              # Klik dua kali: Expo untuk dicoba di HP (Expo Go)
 └── jalankan-web.bat             # Klik dua kali: aplikasi versi web (port 8081)
 ```
+
+---
+
+## Mulai kontribusi (repo & submodule)
+
+Repo ini terasa seperti satu monorepo, tapi isinya tersimpan di **dua repository GitHub**:
+
+| Folder | Kode tersimpan di | Catatan |
+|---|---|---|
+| `mobile/`, `README.md`, dll. | [oceanspacedev/member-app](https://github.com/oceanspacedev/member-app) | repo ini |
+| `backend/` | [oceanspacedev/member-web](https://github.com/oceanspacedev/member-web) | **git submodule**, repo yang dipakai server untuk deploy |
+
+```
+member-app (repo ini)
+├── mobile/      → disimpan di member-app
+└── backend/     → link ke member-web ──► server deploy dari member-web
+```
+
+member-app hanya mencatat **versi (commit) backend** yang dipakai; kode backend aslinya ada di member-web.
+
+### Setup pertama kali (sekali saja)
+
+```bash
+git clone --recurse-submodules https://github.com/oceanspacedev/member-app.git
+cd member-app
+git config push.recurseSubmodules on-demand   # git push sekali = push backend + member-app
+git config submodule.recurse true             # git pull/checkout ikut memperbarui backend/
+git -C backend checkout main                  # supaya commit backend tidak "lepas" dari branch
+```
+
+Lupa `--recurse-submodules` dan folder `backend/` kosong? Jalankan `git submodule update --init`, lalu lanjutkan perintah di atas.
+
+### Alur kerja sehari-hari
+
+**Ubah mobile / file lain** — seperti repo biasa:
+
+```bash
+git add mobile && git commit -m "..." && git push
+```
+
+**Ubah backend** — commit di dua tempat, push sekali:
+
+```bash
+cd backend
+git checkout main && git pull           # pastikan di branch main & terbaru
+# ... edit kode ...
+git add -A && git commit -m "..."       # commit ini masuk ke member-web
+cd ..
+git add backend && git commit -m "chore: update backend"   # catat versi backend baru di member-app
+git push                                # otomatis push backend → member-web, lalu member-app
+```
+
+**Ambil update terbaru:**
+
+```bash
+git pull                                # member-app + backend versi yang tercatat
+git submodule update --remote backend   # atau: ambil commit terbaru member-web/main
+```
+
+### Hal yang perlu diingat
+
+- `git status` menampilkan `modified: backend (new commits)` artinya ada commit backend yang belum dicatat di member-app — jalankan `git add backend` lalu commit.
+- Selalu `git checkout main` di dalam `backend/` sebelum commit. Setelah `git submodule update`, backend sering berada di mode *detached HEAD* dan commit di situ bisa hilang.
+- Push ke member-web langsung bisa dideploy server, jadi pastikan tes backend lulus (`php artisan test`) sebelum push.
+- Jangan salin-tempel kode backend ke member-web secara manual; selalu lewat `backend/` di repo ini.
 
 ---
 
@@ -207,6 +282,8 @@ Semua nilai rahasia **hanya** ada di `backend/.env` — file ini tidak ikut ke G
 | `XENDIT_CALLBACK_TOKEN` | Verification token webhook Xendit |
 | `XENDIT_RETURN_URL` | Opsional, halaman HTTPS setelah bayar |
 | `QUEUE_CONNECTION`, `REDIS_*` | `redis` + Redis berjalan agar Horizon aktif (produksi) |
+| `PLAY_STORE_URL`, `APP_STORE_URL` | Tautan toko untuk tombol unduh di landing page dan `/unduh`. Kosong = "Segera hadir" |
+| `LEGAL_ENTITY`, `SUPPORT_EMAIL`, `SUPPORT_WHATSAPP` | Badan usaha dan kontak di landing page serta halaman Privasi, Syarat, dan Hapus Akun (WhatsApp format `6281234567890`) |
 
 ---
 
@@ -541,7 +618,7 @@ cd backend && php artisan test
 cd mobile && npx tsc --noEmit && npx expo lint
 ```
 
-Tes backend (117 tes) mencakup login OTP & WAGHub, poin & level, kasir (idempoten per struk), QR bertanda tangan, voucher (klaim, tukar poin, ulang tahun, kuota, level, pemakaian di kasir), klaim foto struk (pembacaan Gemini dipalsukan, aturan otomatis), API partner POS, pembayaran Xendit (respons dipalsukan — tidak ada request keluar), panel admin, aktivitas member & hapus akun, serta peran & izin.
+Tes backend (129 tes) mencakup login OTP & WAGHub, poin & level, kasir (idempoten per struk), QR bertanda tangan, voucher (klaim, tukar poin, ulang tahun, kuota, level, pemakaian di kasir), klaim foto struk (pembacaan Gemini dipalsukan, aturan otomatis), API partner POS, pembayaran Xendit (respons dipalsukan — tidak ada request keluar), panel admin, aktivitas member & hapus akun, serta peran & izin, halaman hukum publik, dan landing page.
 
 ---
 
@@ -555,6 +632,48 @@ Tes backend (117 tes) mencakup login OTP & WAGHub, poin & level, kasir (idempote
 - [ ] `php artisan migrate --force`, `php artisan shield:generate --all --panel=admin --option=permissions`, `npm run build`, `php artisan optimize`
 - [ ] Ganti foto contoh dengan foto outlet & promo asli; isi alamat, koordinat, telepon, jam buka outlet
 - [ ] Build aplikasi (ikon & nama "Ocean Space" di HP) dengan EAS: `npx eas-cli@latest build`
+
+---
+
+## Rilis ke App Store & Play Store
+
+Konfigurasi bawaan ada di [`mobile/app.json`](mobile/app.json) dan [`mobile/eas.json`](mobile/eas.json). Ikon sudah memenuhi aturan toko (iOS 1024px tanpa alpha + varian gelap & tinted, adaptive icon Android yang aman dari pemotongan mask + ikon bertema), dan teks izin kamera/galeri/lokasi sudah sesuai pemakaian.
+
+**Sebelum build pertama**
+
+- [ ] Periksa ID aplikasi `id.co.oceanspace.member` (iOS bundle ID & Android package) di `app.json`. **Tidak bisa diganti setelah dipublikasikan.**
+- [ ] `npx eas-cli@latest login`, lalu `npx eas-cli@latest init` di folder `mobile` (membuat proyek EAS dan mengisi `extra.eas.projectId`).
+- [ ] Alamat API produksi untuk build: `npx eas-cli@latest env:create --environment production --name EXPO_PUBLIC_API_URL --value https://DOMAIN/api/v1 --visibility plaintext`. Tanpa ini aplikasi mengarah ke `localhost`.
+- [ ] (Opsional) `EXPO_PUBLIC_SUPPORT_WHATSAPP` (mis. `6281234567890`) agar menu **Pusat bantuan** (chat WhatsApp) tampil di Profil.
+- [ ] Backend produksi: isi `LEGAL_ENTITY`, `SUPPORT_EMAIL`, `SUPPORT_WHATSAPP` di `.env`. Halaman `/kebijakan-privasi`, `/syarat-ketentuan`, dan `/hapus-akun` adalah **draf**; minta tinjauan legal sebelum rilis.
+- [ ] Akun uji untuk reviewer: login memakai OTP WhatsApp, jadi reviewer tidak bisa masuk dengan nomor biasa. Siapkan nomor uji dengan kode tetap di backend produksi, atau jelaskan mode tamu di catatan review (Apple 2.1, Google "App access").
+
+**Setelah aplikasi tayang**
+
+- [ ] Isi `PLAY_STORE_URL` (`https://play.google.com/store/apps/details?id=id.co.oceanspace.member`) dan `APP_STORE_URL` (`https://apps.apple.com/id/app/ocean-space/id<ID dari App Store Connect>`) di `backend/.env`, lalu `php artisan config:cache`. Tombol di landing page berubah dari "Segera hadir" menjadi tautan unduh.
+- [ ] Ganti tombol unduh dengan **badge resmi** (Google Play badge dan "Download on the App Store"): kedua toko mewajibkannya untuk materi promosi. Ubah di `backend/resources/views/landing/stores.blade.php`.
+- [ ] Buat QR yang mengarah ke `https://DOMAIN/unduh` untuk poster dan kasir.
+
+**Build & kirim**
+
+```bash
+cd mobile
+npx eas-cli@latest build --platform all --profile production
+npx eas-cli@latest submit --platform all --profile production
+```
+
+**Isian di toko**
+
+| Kolom | Isi |
+|---|---|
+| URL kebijakan privasi (App Store Connect & Play Console) | `https://DOMAIN/kebijakan-privasi` |
+| URL hapus akun (Play Console › Data safety) | `https://DOMAIN/hapus-akun` |
+| Data yang dikumpulkan (App Privacy / Data safety) | Nomor telepon, nama, tanggal lahir, email (opsional), foto (profil dan struk), lokasi perkiraan (opsional), riwayat pembelian. Tidak ada pelacakan iklan dan data tidak dijual. |
+| Enkripsi | Hanya HTTPS standar (sudah diatur `usesNonExemptEncryption: false`) |
+| Ikon & grafik | App Store: `mobile/assets/images/icon.png`. Play Store: `mobile/store-assets/play-store-icon-512.png` dan grafik fitur `play-feature-graphic-1024x500.png` (buat ulang di macOS: `swift scripts/generate-store-graphics.swift`) |
+| Screenshot | Minimal 2 per ukuran: iPhone 6.9" atau 6.5", dan ponsel Android |
+
+**Mengganti logo**: ubah warna/ukuran di [`mobile/scripts/generate-brand-assets.js`](mobile/scripts/generate-brand-assets.js), jalankan `npm run brand` di folder `mobile`, lalu build ulang.
 
 ---
 

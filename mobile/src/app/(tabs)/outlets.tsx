@@ -5,7 +5,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Icon } from '@/components/icon';
 import { OutletRow, OutletSeparator } from '@/components/outlet-row';
-import { Banner, Chip, Loading, Txt } from '@/components/ui';
+import { OutletListSkeleton } from '@/components/skeleton';
+import { EmptyState, ErrorState } from '@/components/state';
+import { Chip, Txt } from '@/components/ui';
 import { categories, colors, fonts } from '@/constants/theme';
 import type { Outlet } from '@/lib/types';
 import { useApi } from '@/lib/use-api';
@@ -37,6 +39,14 @@ export default function OutletsScreen() {
     const t = setTimeout(() => setQuery(search.trim()), 350);
     return () => clearTimeout(t);
   }, [search]);
+
+  function clearFilters() {
+    setSearch('');
+    setQuery('');
+    setCategory(null);
+    setBrand(null);
+    router.setParams({ brand_id: '', brand: '', category: '' });
+  }
 
   const { data, error, loading, reload } = useApi<{ data: Outlet[] }>('/outlets', {
     category: brand ? null : category,
@@ -102,12 +112,10 @@ export default function OutletsScreen() {
         )}
       </View>
 
-      {error ? (
-        <View style={{ padding: 16 }}>
-          <Banner tone="error" text={error} />
-        </View>
+      {error && !data ? (
+        <ErrorState message={error} onRetry={reload} />
       ) : loading && !data ? (
-        <Loading />
+        <OutletListSkeleton />
       ) : (
         <FlatList
           data={data?.data ?? []}
@@ -125,9 +133,12 @@ export default function OutletsScreen() {
             />
           }
           ListEmptyComponent={
-            <Txt size={14} color={colors.muted} style={{ textAlign: 'center', marginTop: 24 }}>
-              Outlet tidak ditemukan.
-            </Txt>
+            <EmptyState
+              icon="search"
+              title="Outlet tidak ditemukan"
+              text="Coba kata kunci lain, atau ubah kategori dan filter brand."
+              action={search || category || brand ? { label: 'Hapus pencarian & filter', onPress: clearFilters } : undefined}
+            />
           }
           renderItem={({ item }) => <OutletRow outlet={item} />}
         />
