@@ -636,3 +636,21 @@ npx eas-cli@latest submit --platform all --profile production
 ---
 
 Foto contoh di `backend/public/media/stock` berasal dari Unsplash (Unsplash License) — daftar fotografer ada di [`CREDITS.md`](backend/public/media/stock/CREDITS.md). Ganti dengan foto milik brand sebelum rilis.
+
+## Backend = repo member-web (submodule)
+
+Folder `backend/` adalah git submodule yang langsung terhubung ke [oceanspacedev/member-web](https://github.com/oceanspacedev/member-web), repo yang dipakai server. Commit dan push dari dalam `backend/` langsung masuk ke member-web.
+
+Clone pertama kali:
+
+```bash
+git clone --recurse-submodules https://github.com/oceanspacedev/member-app.git
+```
+
+Ambil update backend terbaru:
+
+```bash
+git submodule update --remote backend
+```
+
+Setelah mengubah backend: commit + push di dalam `backend/` (ke member-web), lalu commit perubahan pointer `backend` di member-app supaya monorepo mencatat versi backend yang dipakai.
