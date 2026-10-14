@@ -5,10 +5,12 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { colors } from '@/constants/theme';
 import { api, ApiError } from '@/lib/api';
 import { number, rupiah } from '@/lib/format';
+import { haptics } from '@/lib/haptics';
 import { useSession } from '@/lib/session';
 import type { Promo, Voucher } from '@/lib/types';
 import { usePurchase } from '@/lib/use-purchase';
 
+import { useToast } from './toast';
 import { Button, Txt } from './ui';
 
 /**
@@ -16,6 +18,7 @@ import { Button, Txt } from './ui';
  */
 export function VoucherAction({ promo, onChanged }: { promo: Promo; onChanged?: () => void }) {
   const { status, loyalty, refresh: refreshSession } = useSession();
+  const toast = useToast();
   const v = promo.voucher!;
   const [confirmingPoints, setConfirmingPoints] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -39,8 +42,11 @@ export function VoucherAction({ promo, onChanged }: { promo: Promo; onChanged?: 
       await api<{ voucher: Voucher }>(`/promos/${promo.id}/vouchers`, { method: 'POST' });
       setClaimed(true);
       setConfirmingPoints(false);
+      haptics.success();
+      toast.show('Voucher masuk ke Voucher Saya', 'success');
       onPaid();
     } catch (e) {
+      haptics.error();
       setError(e instanceof ApiError ? e.message : 'Gagal mengambil voucher.');
     } finally {
       setBusy(false);

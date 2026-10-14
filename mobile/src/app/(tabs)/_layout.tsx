@@ -3,6 +3,7 @@ import { View, type ColorValue } from 'react-native';
 
 import { Icon, type IconName } from '@/components/icon';
 import { colors, fonts } from '@/constants/theme';
+import { haptics } from '@/lib/haptics';
 import { useSession } from '@/lib/session';
 
 function tabIcon(name: IconName) {
@@ -16,11 +17,14 @@ export default function TabsLayout() {
 
   return (
     <Tabs
+      // Getar halus tiap ganti tab, seperti di aplikasi belanja besar.
+      screenListeners={{ tabPress: () => haptics.select() }}
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.subtle,
         tabBarLabelStyle: { fontFamily: fonts.bold, fontSize: 11 },
+        tabBarAllowFontScaling: false,
         tabBarStyle: { borderTopColor: colors.line, backgroundColor: colors.surface },
         sceneStyle: { backgroundColor: colors.ground },
       }}>

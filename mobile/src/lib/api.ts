@@ -15,7 +15,7 @@ function resolveBaseUrl(): string {
   return CONFIGURED_URL.replace(/\/\/(localhost|127\.0\.0\.1)(?=[:/])/, `//${host}`);
 }
 
-const BASE_URL = resolveBaseUrl();
+export const BASE_URL = resolveBaseUrl();
 
 let authToken: string | null = null;
 let onUnauthorized: (() => void) | null = null;

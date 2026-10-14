@@ -4,6 +4,7 @@ import { router, useIsFocused } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import Animated, { ZoomIn } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { GuestPrompt } from '@/components/guest-prompt';
@@ -12,6 +13,7 @@ import { Banner, Button, Txt } from '@/components/ui';
 import { colors } from '@/constants/theme';
 import { api, ApiError, upload } from '@/lib/api';
 import { number, rupiah } from '@/lib/format';
+import { haptics } from '@/lib/haptics';
 import { useSession } from '@/lib/session';
 import type { ReceiptClaim } from '@/lib/types';
 
@@ -122,6 +124,7 @@ function ReceiptForm() {
       const res = await upload<{ data: ReceiptClaim }>('/me/receipts', photo, { field: 'photo' });
       setClaim(res.data);
     } catch (e) {
+      haptics.error();
       setError(e instanceof ApiError ? e.message : 'Gagal mengirim struk.');
     } finally {
       setBusy(false);
@@ -196,6 +199,13 @@ function ReceiptResult({ claim, onRetake }: { claim: ReceiptClaim; onRetake: () 
   const approved = claim.status === 'approved';
   const rejected = claim.status === 'rejected';
 
+  // Hasil akhir terasa di tangan: getar sukses saat poin masuk, getar peringatan bila struk ditolak.
+  useEffect(() => {
+    if (claim.checking) return;
+    if (approved) haptics.success();
+    else if (rejected) haptics.warning();
+  }, [claim.checking, approved, rejected]);
+
   const title = claim.checking
     ? 'Memeriksa struk…'
     : approved
@@ -214,7 +224,10 @@ function ReceiptResult({ claim, onRetake }: { claim: ReceiptClaim; onRetake: () 
   return (
     <SafeAreaView style={{ flex: 1 }} edges={['top']}>
       <View style={styles.done} accessibilityLiveRegion="polite">
-        <View style={[styles.doneIcon, rejected ? styles.iconRejected : !approved ? styles.iconWaiting : null]}>
+        <Animated.View
+          key={claim.checking ? 'checking' : claim.status}
+          entering={ZoomIn.springify().damping(12)}
+          style={[styles.doneIcon, rejected ? styles.iconRejected : !approved ? styles.iconWaiting : null]}>
           {claim.checking ? (
             <ActivityIndicator color={colors.accentText} />
           ) : (
@@ -225,7 +238,7 @@ function ReceiptResult({ claim, onRetake }: { claim: ReceiptClaim; onRetake: () 
               strokeWidth={2.4}
             />
           )}
-        </View>
+        </Animated.View>
         <Txt weight="extrabold" size={22} style={{ textAlign: 'center' }} accessibilityRole="header">
           {title}
         </Txt>

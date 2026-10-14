@@ -1,14 +1,29 @@
 import * as Location from 'expo-location';
-import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
+import { useRef, useState } from 'react';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Switch, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Icon } from '@/components/icon';
 import { Banner, Button, Field, Txt } from '@/components/ui';
 import { colors } from '@/constants/theme';
 import { api, ApiError } from '@/lib/api';
+import { haptics } from '@/lib/haptics';
 import { useSession } from '@/lib/session';
 import type { User } from '@/lib/types';
+
+const digitsOnly = (text: string, max: number) => text.replace(/\D/g, '').slice(0, max);
+
+/** Pesan kesalahan bila tanggal tidak ada di kalender (mis. 31/02) atau di masa depan; undefined bila sah. */
+function birthDateProblem(day: string, month: string, year: string): string | undefined {
+  const d = Number(day);
+  const m = Number(month);
+  const y = Number(year);
+  const date = new Date(y, m - 1, d);
+  const real = date.getFullYear() === y && date.getMonth() === m - 1 && date.getDate() === d;
+  if (!real || y < 1900) return 'Tanggal lahir tidak valid. Periksa lagi tanggal, bulan, dan tahunnya.';
+  if (date.getTime() > Date.now()) return 'Tanggal lahir tidak boleh di masa depan.';
+  return undefined;
+}
 
 export default function CompleteProfileScreen() {
   const { user, setUser, refresh, signOut } = useSession();
@@ -21,6 +36,14 @@ export default function CompleteProfileScreen() {
   const [errors, setErrors] = useState<Record<string, string | undefined>>({});
   const [loading, setLoading] = useState(false);
   const needsBirthDate = !user?.birth_date;
+  const dayInput = useRef<TextInput>(null);
+  const monthInput = useRef<TextInput>(null);
+  const yearInput = useRef<TextInput>(null);
+  const emailInput = useRef<TextInput>(null);
+
+  const dateComplete = day.length > 0 && month.length > 0 && year.length === 4;
+  // Pesan kesalahan lokal muncul begitu ketiga kolom terisi, tanpa menunggu server.
+  const dateProblem = needsBirthDate && dateComplete ? birthDateProblem(day, month, year) : undefined;
 
   async function submit() {
     setErrors({});
@@ -41,9 +64,11 @@ export default function CompleteProfileScreen() {
       }
 
       const res = await api<{ data: User }>('/me', { method: 'PATCH', body });
+      haptics.success();
       await refresh().catch(() => undefined);
       setUser(res.data);
     } catch (e) {
+      haptics.error();
       if (e instanceof ApiError) {
         setErrors({
           name: e.field('name'),
@@ -57,7 +82,8 @@ export default function CompleteProfileScreen() {
     }
   }
 
-  const dateFilled = !needsBirthDate || (day && month && year.length === 4);
+  const dateFilled = !needsBirthDate || (dateComplete && !dateProblem);
+  const birthDateError = errors.birth_date ?? dateProblem;
 
   return (
     <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
@@ -72,50 +98,108 @@ export default function CompleteProfileScreen() {
             </Txt>
           </View>
 
-          <Field label="Nama lengkap" value={name} onChangeText={setName} autoComplete="name" textContentType="name" error={errors.name} />
+          <Field
+            label="Nama lengkap"
+            value={name}
+            onChangeText={setName}
+            autoComplete="name"
+            textContentType="name"
+            autoCapitalize="words"
+            returnKeyType="next"
+            onSubmitEditing={() => (needsBirthDate ? dayInput : emailInput).current?.focus()}
+            error={errors.name}
+          />
 
           {needsBirthDate && (
-          <View style={{ gap: 6 }}>
-            <Txt weight="semibold" size={13} color={colors.inkSoft}>
-              Tanggal lahir
-            </Txt>
-            <View style={{ flexDirection: 'row', gap: 8 }}>
-              <View style={{ flex: 1 }}>
-                <Field label="Tanggal" placeholder="DD" keyboardType="number-pad" maxLength={2} value={day} onChangeText={setDay} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Field label="Bulan" placeholder="MM" keyboardType="number-pad" maxLength={2} value={month} onChangeText={setMonth} />
-              </View>
-              <View style={{ flex: 1.4 }}>
-                <Field label="Tahun" placeholder="YYYY" keyboardType="number-pad" maxLength={4} value={year} onChangeText={setYear} />
-              </View>
-            </View>
-            {errors.birth_date ? (
-              <Txt size={12} color={colors.danger}>
-                {errors.birth_date}
+            <View style={{ gap: 6 }}>
+              <Txt weight="semibold" size={13} color={colors.inkSoft}>
+                Tanggal lahir
               </Txt>
-            ) : (
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <Icon name="gift" size={16} color={colors.accentText} strokeWidth={2} />
-                <Txt weight="semibold" size={12} color={colors.accentText}>
-                  Dipakai untuk birthday reward. Tidak bisa diubah setelah disimpan.
-                </Txt>
+              {/* Kolom berpindah sendiri saat terisi penuh; Backspace di kolom kosong kembali ke kolom sebelumnya. */}
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                <View style={{ flex: 1 }}>
+                  <Field
+                    ref={dayInput}
+                    label="Tanggal"
+                    placeholder="DD"
+                    keyboardType="number-pad"
+                    maxLength={2}
+                    value={day}
+                    onChangeText={(text) => {
+                      const v = digitsOnly(text, 2);
+                      setDay(v);
+                      if (v.length === 2) monthInput.current?.focus();
+                    }}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Field
+                    ref={monthInput}
+                    label="Bulan"
+                    placeholder="MM"
+                    keyboardType="number-pad"
+                    maxLength={2}
+                    value={month}
+                    onChangeText={(text) => {
+                      const v = digitsOnly(text, 2);
+                      setMonth(v);
+                      if (v.length === 2) yearInput.current?.focus();
+                    }}
+                    onKeyPress={(e) => {
+                      if (e.nativeEvent.key === 'Backspace' && month === '') dayInput.current?.focus();
+                    }}
+                  />
+                </View>
+                <View style={{ flex: 1.4 }}>
+                  <Field
+                    ref={yearInput}
+                    label="Tahun"
+                    placeholder="YYYY"
+                    keyboardType="number-pad"
+                    maxLength={4}
+                    value={year}
+                    onChangeText={(text) => setYear(digitsOnly(text, 4))}
+                    onKeyPress={(e) => {
+                      if (e.nativeEvent.key === 'Backspace' && year === '') monthInput.current?.focus();
+                    }}
+                  />
+                </View>
               </View>
-            )}
-          </View>
+              {birthDateError ? (
+                <Txt size={12} color={colors.danger} accessibilityLiveRegion="polite">
+                  {birthDateError}
+                </Txt>
+              ) : (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Icon name="gift" size={16} color={colors.accentText} strokeWidth={2} />
+                  <Txt weight="semibold" size={12} color={colors.accentText}>
+                    Dipakai untuk birthday reward. Tidak bisa diubah setelah disimpan.
+                  </Txt>
+                </View>
+              )}
+            </View>
           )}
 
           <Field
+            ref={emailInput}
             label="Email (opsional)"
             value={email}
             onChangeText={setEmail}
             keyboardType="email-address"
             autoCapitalize="none"
             autoComplete="email"
+            returnKeyType="done"
             error={errors.email}
           />
 
-          <Pressable style={styles.toggle} onPress={() => setUseLocation((v) => !v)} accessibilityRole="switch" accessibilityState={{ checked: useLocation }}>
+          <Pressable
+            style={styles.toggle}
+            onPress={() => {
+              haptics.select();
+              setUseLocation((v) => !v);
+            }}
+            accessibilityRole="switch"
+            accessibilityState={{ checked: useLocation }}>
             <View style={{ flex: 1 }}>
               <Txt weight="bold" size={13}>
                 Izinkan akses lokasi
@@ -124,7 +208,7 @@ export default function CompleteProfileScreen() {
                 Untuk menampilkan outlet terdekat dan promo di sekitarmu.
               </Txt>
             </View>
-            <Switch value={useLocation} onValueChange={setUseLocation} trackColor={{ true: colors.primary }} />
+            <Switch value={useLocation} onValueChange={setUseLocation} trackColor={{ false: colors.inputBorder, true: colors.primary }} thumbColor="#FFFFFF" />
           </Pressable>
 
           {errors.general && <Banner tone="error" text={errors.general} />}

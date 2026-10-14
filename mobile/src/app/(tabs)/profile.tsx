@@ -1,4 +1,3 @@
-import Constants from 'expo-constants';
 import * as ImagePicker from 'expo-image-picker';
 import { router, useIsFocused } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -6,6 +5,7 @@ import { useState } from 'react';
 import { ActivityIndicator, Modal, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AboutGroup, AppVersion } from '@/components/about';
 import { GuestPrompt } from '@/components/guest-prompt';
 import { Icon, type IconName } from '@/components/icon';
 import { UserAvatar } from '@/components/media';
@@ -13,7 +13,9 @@ import { MenuGroup, type MenuRowItem } from '@/components/menu-row';
 import { Banner, Txt } from '@/components/ui';
 import { colors } from '@/constants/theme';
 import { api, ApiError, upload } from '@/lib/api';
+import { confirmAction } from '@/lib/confirm';
 import { number } from '@/lib/format';
+import { haptics } from '@/lib/haptics';
 import { useSession } from '@/lib/session';
 import type { User } from '@/lib/types';
 
@@ -53,6 +55,8 @@ function GuestProfile() {
         </View>
         <View style={styles.body}>
           <MenuGroup title="Jelajahi" rows={rows} />
+          <AboutGroup />
+          <AppVersion />
         </View>
       </ScrollView>
     </View>
@@ -154,6 +158,17 @@ function MemberProfile() {
     ...(user.avatar_url ? [{ label: 'Hapus foto', icon: 'trash' as IconName, onPress: removePhoto, danger: true }] : []),
   ];
 
+  function confirmLogout() {
+    haptics.warning();
+    confirmAction({
+      title: 'Keluar dari akun?',
+      message: 'Kamu bisa masuk lagi kapan saja dengan nomor WhatsApp yang sama. Poin dan vouchermu tetap aman.',
+      confirmLabel: 'Keluar',
+      destructive: true,
+      onConfirm: () => void signOut(),
+    });
+  }
+
   const stats: { label: string; value: string; go: () => void }[] = [
     { label: 'Poin', value: number(loyalty?.points_balance ?? user.points_balance), go: () => router.push('/points') },
     { label: 'Voucher aktif', value: number(loyalty?.active_vouchers ?? 0), go: () => router.push('/vouchers') },
@@ -248,15 +263,15 @@ function MemberProfile() {
             <MenuGroup key={section.title} title={section.title} rows={section.rows} />
           ))}
 
-          <Pressable accessibilityRole="button" onPress={signOut} style={({ pressed }) => [styles.logout, pressed && { opacity: 0.7 }]}>
+          <AboutGroup />
+
+          <Pressable accessibilityRole="button" onPress={confirmLogout} style={({ pressed }) => [styles.logout, pressed && { opacity: 0.7 }]}>
             <Icon name="logout" size={20} color={colors.danger} strokeWidth={2} />
             <Txt weight="bold" size={15} color={colors.danger}>
               Keluar
             </Txt>
           </Pressable>
-          <Txt size={12} color={colors.subtle} style={{ textAlign: 'center' }}>
-            Ocean Space · versi {Constants.expoConfig?.version ?? '1.0.0'}
-          </Txt>
+          <AppVersion />
         </View>
       </ScrollView>
 

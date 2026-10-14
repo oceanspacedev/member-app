@@ -12,7 +12,10 @@ import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useState } from 'react';
 
 import { AppIntro } from '@/components/app-intro';
+import { OfflineBanner } from '@/components/offline-banner';
+import { ToastProvider } from '@/components/toast';
 import { colors } from '@/constants/theme';
+import { IntroProvider } from '@/lib/intro';
 import { SessionProvider, useSession } from '@/lib/session';
 
 SplashScreen.preventAutoHideAsync();
@@ -37,9 +40,14 @@ export default function RootLayout() {
 
   return (
     <SessionProvider>
-      <StatusBar style="auto" />
-      <RootNavigator fontsLoaded={fontsLoaded} />
-      {fontsLoaded && !introDone && <Intro onDone={finishIntro} />}
+      <ToastProvider>
+        <IntroProvider value={introDone}>
+          <StatusBar style="auto" />
+          <RootNavigator fontsLoaded={fontsLoaded} />
+          <OfflineBanner />
+        </IntroProvider>
+        {fontsLoaded && !introDone && <Intro onDone={finishIntro} />}
+      </ToastProvider>
     </SessionProvider>
   );
 }
@@ -50,7 +58,7 @@ function Intro({ onDone }: { onDone: () => void }) {
 }
 
 function RootNavigator({ fontsLoaded }: { fontsLoaded: boolean }) {
-  const { status, user } = useSession();
+  const { status, user, onboarded } = useSession();
   const ready = fontsLoaded && status !== 'loading';
 
   if (!ready) return null;
@@ -60,9 +68,14 @@ function RootNavigator({ fontsLoaded }: { fontsLoaded: boolean }) {
   const member = signedIn && !!user?.profile_complete;
 
   // Layar yang tidak lolos guard otomatis dialihkan ke layar pertama yang tersedia, jadi urutan penting:
-  // tamu & member mendarat di (tabs), yang belum memilih apa pun mendarat di login.
+  // pemasang baru mendarat di pengenalan, tamu & member di (tabs), sisanya di login.
   return (
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.ground } }}>
+      {/* Pengenalan hanya untuk pembukaan pertama, sebelum memilih masuk atau tamu. */}
+      <Stack.Protected guard={status === 'signedOut' && !onboarded}>
+        <Stack.Screen name="onboarding" options={{ animation: 'fade', gestureEnabled: false, contentStyle: { backgroundColor: colors.primary } }} />
+      </Stack.Protected>
+
       {/* Katalog publik: bisa dibuka tamu. */}
       <Stack.Protected guard={member || guest}>
         <Stack.Screen name="(tabs)" />

@@ -3,7 +3,9 @@ import { useCallback, useState } from 'react';
 import { FlatList, RefreshControl, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Banner, Button, Chip, Loading, ScreenHeader, Txt } from '@/components/ui';
+import { VoucherListSkeleton } from '@/components/skeleton';
+import { EmptyState, ErrorState } from '@/components/state';
+import { Chip, ScreenHeader } from '@/components/ui';
 import { VoucherCard } from '@/components/voucher-card';
 import { colors } from '@/constants/theme';
 import type { Voucher } from '@/lib/types';
@@ -26,12 +28,10 @@ export default function VouchersScreen() {
         <Chip label="Riwayat" active={tab === 'history'} onPress={() => setTab('history')} />
       </View>
 
-      {error ? (
-        <View style={{ padding: 16 }}>
-          <Banner tone="error" text={error} />
-        </View>
+      {error && !data ? (
+        <ErrorState message={error} onRetry={reload} />
       ) : loading && !data ? (
-        <Loading />
+        <VoucherListSkeleton />
       ) : (
         <FlatList
           data={data?.data ?? []}
@@ -41,19 +41,14 @@ export default function VouchersScreen() {
           refreshControl={<RefreshControl refreshing={loading} onRefresh={reload} tintColor={colors.primary} />}
           ListEmptyComponent={
             tab === 'active' ? (
-              <View style={{ alignItems: 'center', gap: 14, marginTop: 32, paddingHorizontal: 24 }}>
-                <Txt weight="bold" size={16}>
-                  Belum ada voucher aktif
-                </Txt>
-                <Txt size={14} color={colors.muted} style={{ textAlign: 'center', lineHeight: 20 }}>
-                  Klaim voucher gratis atau tukar poinmu dengan voucher di halaman Promo.
-                </Txt>
-                <Button title="Lihat promo" variant="outline" onPress={() => router.navigate('/promo')} style={{ alignSelf: 'stretch' }} />
-              </View>
+              <EmptyState
+                icon="ticket"
+                title="Belum ada voucher aktif"
+                text="Klaim voucher gratis atau tukar poinmu dengan voucher di halaman Promo."
+                action={{ label: 'Lihat promo', onPress: () => router.navigate('/promo') }}
+              />
             ) : (
-              <Txt size={14} color={colors.muted} style={{ textAlign: 'center', marginTop: 32 }}>
-                Voucher yang sudah dipakai atau kedaluwarsa muncul di sini.
-              </Txt>
+              <EmptyState icon="clock" title="Belum ada riwayat" text="Voucher yang sudah dipakai atau kedaluwarsa muncul di sini." />
             )
           }
         />

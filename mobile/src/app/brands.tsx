@@ -4,25 +4,25 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Icon } from '@/components/icon';
 import { BrandAvatar } from '@/components/media';
-import { Banner, Loading, ScreenHeader, Txt } from '@/components/ui';
+import { OutletListSkeleton } from '@/components/skeleton';
+import { ErrorState } from '@/components/state';
+import { ScreenHeader, Txt } from '@/components/ui';
 import { categories, colors } from '@/constants/theme';
 import type { Brand } from '@/lib/types';
 import { useApi } from '@/lib/use-api';
 
 /** Semua brand dalam grup, dikelompokkan per kategori seperti di dokumen rancangan. */
 export default function BrandsScreen() {
-  const { data, error, loading } = useApi<{ data: Brand[] }>('/brands');
+  const { data, error, loading, reload } = useApi<{ data: Brand[] }>('/brands');
   const brands = data?.data ?? [];
 
   return (
     <SafeAreaView style={{ flex: 1 }} edges={['top']}>
       <ScreenHeader title="Brand Grup" />
-      {error ? (
-        <View style={{ padding: 16 }}>
-          <Banner tone="error" text={error} />
-        </View>
+      {error && !data ? (
+        <ErrorState message={error} onRetry={reload} />
       ) : loading && !data ? (
-        <Loading />
+        <OutletListSkeleton count={7} />
       ) : (
         <ScrollView contentContainerStyle={styles.body}>
           <Txt size={14} color={colors.inkSoft} style={{ lineHeight: 21 }}>

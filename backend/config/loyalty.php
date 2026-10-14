@@ -107,4 +107,25 @@ return [
 
     'google_client_ids' => array_values(array_filter(explode(',', (string) env('GOOGLE_CLIENT_IDS', '')))),
 
+    /*
+    | Tautan unduh aplikasi untuk landing page (/) dan tautan pendek /unduh. Isi setelah aplikasi tayang:
+    |   Play Store: https://play.google.com/store/apps/details?id=id.co.oceanspace.member
+    |   App Store : https://apps.apple.com/id/app/ocean-space/id<ID dari App Store Connect>
+    | Kosong (atau bukan https) = tombolnya tampil sebagai "Segera hadir".
+    */
+    'stores' => [
+        'android' => env('PLAY_STORE_URL'),
+        'ios' => env('APP_STORE_URL'),
+    ],
+
+    /*
+    | Identitas & kontak yang tampil di halaman hukum publik (/kebijakan-privasi, /syarat-ketentuan,
+    | /hapus-akun) — tautan wajib di App Store dan Play Store. Isi sebelum rilis.
+    */
+    'legal' => [
+        'entity' => env('LEGAL_ENTITY'),
+        'email' => env('SUPPORT_EMAIL'),
+        'whatsapp' => env('SUPPORT_WHATSAPP'),
+    ],
+
 ];

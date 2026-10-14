@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Icon } from '@/components/icon';
 import { BrandAvatar } from '@/components/media';
+import { EmptyState } from '@/components/state';
 import { Banner, Button, Card, ScreenHeader, Txt } from '@/components/ui';
 import { colors } from '@/constants/theme';
 import { api, ApiError } from '@/lib/api';
@@ -153,9 +154,12 @@ export default function PointsScreen() {
         ListFooterComponent={loading ? <ActivityIndicator color={colors.primary} style={{ marginVertical: 16 }} /> : null}
         ListEmptyComponent={
           loading ? null : (
-            <Txt size={13} color={colors.muted}>
-              Belum ada transaksi. Foto struk belanjamu di outlet Ocean Space untuk mulai mengumpulkan poin.
-            </Txt>
+            <EmptyState
+              icon="receipt"
+              title="Belum ada transaksi"
+              text="Foto struk belanjamu di outlet Ocean Space untuk mulai mengumpulkan poin."
+              style={{ paddingVertical: 24 }}
+            />
           )
         }
         renderItem={({ item, index }) => {
