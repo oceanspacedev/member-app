@@ -57,7 +57,7 @@ export default function TabsLayout() {
                 alignItems: 'center',
                 justifyContent: 'center',
               }}>
-              <Icon name="camera" size={26} color={focused ? colors.primaryDark : '#FFFFFF'} />
+              <Icon name="camera" size={26} color={colors.accentInk} />
             </View>
           ),
         }}

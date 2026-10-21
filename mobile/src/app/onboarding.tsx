@@ -159,7 +159,7 @@ export default function OnboardingScreen() {
             ))}
           </View>
 
-          <Button title={last ? 'Mulai sekarang' : 'Lanjut'} variant="brass" onPress={last ? start : next} />
+          <Button title={last ? 'Mulai sekarang' : 'Lanjut'} variant="light" onPress={last ? start : next} />
 
           <Pressable
             accessibilityRole="button"
@@ -216,7 +216,7 @@ function Dot({ index, width, scrollX }: { index: number; width: number; scrollX:
     const d = Math.min(1, Math.abs(scrollX.get() / width - index));
     return {
       width: interpolate(d, [0, 1], [24, 7]),
-      backgroundColor: interpolateColor(d, [0, 1], [colors.accent, 'rgba(255, 255, 255, 0.22)']),
+      backgroundColor: interpolateColor(d, [0, 1], [colors.accentOnDark, 'rgba(255, 255, 255, 0.22)']),
     };
   });
   return <Animated.View style={[styles.dot, style]} />;

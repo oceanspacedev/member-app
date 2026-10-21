@@ -44,14 +44,14 @@ export function Scrim({ from = 0, to = 0.7, style }: { from?: number; to?: numbe
   );
 }
 
-/** Foto profil member; jika belum ada, inisial di lingkaran emas. */
+/** Foto profil member; jika belum ada, inisial di lingkaran biru. */
 export function UserAvatar({ name, uri, size = 44 }: { name: string | null; uri?: string | null; size?: number }) {
   if (uri) {
     return <Photo uri={uri} label={`Foto profil ${name ?? ''}`.trim()} tint={colors.accent} style={{ width: size, height: size, borderRadius: size / 2 }} />;
   }
   return (
     <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' }}>
-      <Txt weight="extrabold" size={Math.round(size * 0.34)} color={colors.primaryDark}>
+      <Txt weight="extrabold" size={Math.round(size * 0.34)} color={colors.accentInk}>
         {initials(name)}
       </Txt>
     </View>

@@ -48,7 +48,7 @@ export default function OutletDetailScreen() {
     );
   }
 
-  const color = outlet.brand?.color ?? colors.primary;
+  const color = colors.primary;
   const wa = outlet.whatsapp?.replace(/\D/g, '');
   const actions: { label: string; icon: ReactNode; url: string | null }[] = [
     {

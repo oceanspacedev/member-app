@@ -14,7 +14,7 @@ export function EmptyState({ icon, title, text, action, style, dark }: StateProp
   return (
     <View style={[styles.box, style]}>
       <View style={[styles.badge, dark && { backgroundColor: 'rgba(255, 255, 255, 0.08)' }]}>
-        <Icon name={icon} size={30} color={dark ? colors.accent : colors.accentText} strokeWidth={1.7} />
+        <Icon name={icon} size={30} color={dark ? colors.accentOnDark : colors.accentText} strokeWidth={1.7} />
       </View>
       <Txt weight="extrabold" size={17} color={dark ? '#FFFFFF' : colors.ink} style={{ textAlign: 'center' }} accessibilityRole="header">
         {title}

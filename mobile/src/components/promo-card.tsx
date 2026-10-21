@@ -5,6 +5,7 @@ import { colors } from '@/constants/theme';
 import { shortDate } from '@/lib/format';
 import type { Promo } from '@/lib/types';
 
+import { Icon } from './icon';
 import { Photo, Scrim } from './media';
 import { Txt } from './ui';
 import { VoucherAction } from './voucher-action';
@@ -16,6 +17,15 @@ function brandLabel(promo: Promo) {
 
 /** Badge besar "20% diskon" — di atas foto atau di blok warna brand. */
 function Highlight({ promo, size = 19 }: { promo: Promo; size?: number }) {
+  // Promo tanpa teks besar: badge berisi ikon promo saja.
+  if (!promo.highlight) {
+    return (
+      <View style={{ alignSelf: 'center' }}>
+        <Icon name="ticket" size={30} color="#FFFFFF" strokeWidth={1.8} />
+      </View>
+    );
+  }
+
   // Teks panjang seperti "Rp100rb" diperkecil agar tetap satu baris di badge 96px.
   const fontSize = promo.highlight.length > 6 ? size - 4 : size;
 
@@ -35,7 +45,8 @@ function Highlight({ promo, size = 19 }: { promo: Promo; size?: number }) {
 
 export function PromoCard({ promo, onChanged }: { promo: Promo; onChanged?: () => void }) {
   const [open, setOpen] = useState(false);
-  const color = promo.brand?.color ?? colors.primary;
+  // Satu warna untuk semua promo agar tampilan seragam; identitas brand dari nama & logonya.
+  const color = colors.primary;
   const details = [promo.description, promo.terms].filter(Boolean).join('\n\n');
 
   const body = (
@@ -63,10 +74,15 @@ export function PromoCard({ promo, onChanged }: { promo: Promo; onChanged?: () =
           <>
             <View style={styles.photo}>
               <Photo uri={promo.image_url} label={promo.title} tint={color} style={StyleSheet.absoluteFill} />
-              <Scrim from={0} to={0.35} />
-              <View style={[styles.highlightChip, { backgroundColor: color }]}>
-                <Highlight promo={promo} size={18} />
-              </View>
+              {/* Tanpa teks besar, gambar (yang sudah berisi teks desain) tampil bersih tanpa bayangan. */}
+              {promo.highlight ? (
+                <>
+                  <Scrim from={0} to={0.35} />
+                  <View style={[styles.highlightChip, { backgroundColor: color }]}>
+                    <Highlight promo={promo} size={18} />
+                  </View>
+                </>
+              ) : null}
             </View>
             {body}
           </>

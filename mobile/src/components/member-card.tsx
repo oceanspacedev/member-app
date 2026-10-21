@@ -12,7 +12,7 @@ import { Txt } from './ui';
 type TierStatus = 'current' | 'next' | 'reached' | 'locked';
 
 /**
- * Kartu satu level keanggotaan (Silver/Gold/Platinum) dengan warna tier. Level aktif diberi bingkai emas; level berikutnya menampilkan sisa belanja.
+ * Kartu satu level keanggotaan (Silver/Gold/Platinum) dengan warna tier. Level aktif diberi bingkai biru; level berikutnya menampilkan sisa belanja.
  */
 export function TierCard({ tier, status, remaining }: { tier: Tier; status: TierStatus; remaining?: number }) {
   const color = tierColors[tier.key] ?? colors.subtle;
@@ -58,7 +58,7 @@ export function TierCard({ tier, status, remaining }: { tier: Tier; status: Tier
       <View style={styles.perks}>
         {benefits.map((b) => (
           <View key={b} style={styles.perk}>
-            <Icon name="check" size={13} color={colors.accent} strokeWidth={2.4} />
+            <Icon name="check" size={13} color={colors.accentOnDark} strokeWidth={2.4} />
             <Txt weight="semibold" size={12} color="#FFFFFF">
               {b}
             </Txt>
@@ -96,7 +96,7 @@ export function TierProgress({ loyalty }: { loyalty: Loyalty }) {
 
 const styles = StyleSheet.create({
   tierCard: { borderRadius: 18, padding: 16, gap: 14, overflow: 'hidden' },
-  // Bingkai emas untuk level yang sedang dimiliki.
+  // Bingkai biru untuk level yang sedang dimiliki.
   tierCurrent: { borderWidth: 2, borderColor: colors.accent },
   tierWatermark: { position: 'absolute', right: -30, bottom: -40, opacity: 0.1 },
   tierBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 },

@@ -78,7 +78,8 @@ export type Promo = {
   id: number;
   type: PromoType;
   title: string;
-  highlight: string;
+  /** Kosong bila desain gambar promo sudah berisi teks — gambar tampil apa adanya. */
+  highlight: string | null;
   highlight_caption: string | null;
   description: string | null;
   terms: string | null;

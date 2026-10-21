@@ -120,7 +120,7 @@ export function DeleteAccountSheet({ visible, points, vouchers, onClose, onDelet
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: 'rgba(24, 24, 27, 0.45)' },
+  backdrop: { flex: 1, backgroundColor: colors.shade },
   sheet: {
     backgroundColor: colors.surface,
     borderTopLeftRadius: 24,

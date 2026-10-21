@@ -48,8 +48,8 @@ export default function BrandsScreen() {
                       {b.logo_url ? (
                         <BrandAvatar name={b.name} logoUrl={b.logo_url} size={44} />
                       ) : (
-                        <View style={[styles.swatch, { backgroundColor: b.color }]}>
-                          <Icon name="store" size={20} color="#FFFFFF" strokeWidth={1.8} />
+                        <View style={styles.swatch}>
+                          <Icon name="store" size={20} color={colors.accent} strokeWidth={1.8} />
                         </View>
                       )}
                       <View style={{ flex: 1, gap: 2 }}>
@@ -78,5 +78,5 @@ const styles = StyleSheet.create({
   group: { backgroundColor: colors.surface, borderRadius: 16, borderWidth: 1, borderColor: colors.line, overflow: 'hidden' },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 12 },
   divider: { borderTopWidth: 1, borderTopColor: colors.lineSoft },
-  swatch: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  swatch: { width: 44, height: 44, borderRadius: 12, backgroundColor: colors.accentSoft, alignItems: 'center', justifyContent: 'center' },
 });

@@ -1,20 +1,20 @@
 import { router, useIsFocused, type Href } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { ReceiptArt, RewardArt, TierMedal } from '@/components/home-art';
+import { BlueGradient, HomeHero, HomeNavbar } from '@/components/home-hero';
 import { Icon } from '@/components/icon';
-import { LogoGlyph } from '@/components/logo';
+import { LocationPrompt } from '@/components/location-prompt';
+import { MemberQrSheet } from '@/components/member-qr-sheet';
 import { MenuIcon, type MenuIconName } from '@/components/menu-icon';
 import { OutletRow, OutletSeparator } from '@/components/outlet-row';
-import { PromoCarousel } from '@/components/promo-carousel';
-import { OutletListSkeleton, PromoCardSkeleton, SkeletonGroup } from '@/components/skeleton';
+import { OutletListSkeleton } from '@/components/skeleton';
 import { ErrorState } from '@/components/state';
 import { Txt } from '@/components/ui';
-import { WordReveal } from '@/components/word-reveal';
 import { colors } from '@/constants/theme';
-import { greeting, number, rupiah, rupiahShort } from '@/lib/format';
+import { number, rupiah, rupiahShort } from '@/lib/format';
 import { useSession } from '@/lib/session';
 import type { Outlet, Promo } from '@/lib/types';
 import { useApi } from '@/lib/use-api';
@@ -26,12 +26,12 @@ type MenuItem = { label: string; icon: MenuIconName; href: Href; badge?: number;
 export default function HomeScreen() {
   const { status, user, loyalty, refresh } = useSession();
   const guest = status === 'guest';
-  const insets = useSafeAreaInsets();
   const focused = useIsFocused();
   const location = useLocation();
   const promos = useApi<{ data: Promo[] }>('/promos');
   const outlets = useApi<{ data: Outlet[] }>('/outlets', { lat: location.coords?.lat, lng: location.coords?.lng });
   const [refreshing, setRefreshing] = useState(false);
+  const [cardOpen, setCardOpen] = useState(false);
 
   async function onRefresh() {
     setRefreshing(true);
@@ -43,16 +43,17 @@ export default function HomeScreen() {
 
   if (!user && !guest) return null;
 
-  const hello = user ? `Halo, ${user.name?.split(' ')[0] ?? ''}` : 'Halo, Tamu';
+  /** Fitur khusus member: tamu diarahkan ke halaman masuk. */
+  const memberOnly = (go: () => void) => () => (guest ? router.push('/login') : go());
+
   const nearby = (outlets.data?.data ?? []).slice(0, 3);
   const allPromos = promos.data?.data ?? [];
-  // Pertama kali memuat: tampilkan kerangka, bukan layar kosong yang lalu "melompat" saat data tiba.
-  const promosLoading = !promos.data && !promos.error;
+  // Banner: promo berfoto lebih dulu, sisanya tampil dengan latar gradasi biru.
+  const heroPromos = [...allPromos.filter((p) => p.image_url), ...allPromos.filter((p) => !p.image_url)];
   const outletsLoading = !outlets.data && !outlets.error;
   const rewards = allPromos.filter((p) => p.voucher?.price_points != null);
   const progress = loyalty?.next_tier_spend ? Math.min(1, loyalty.annual_spend / loyalty.next_tier_spend) : 1;
 
-  // Delapan menu member, sesuai fitur di dokumen rancangan.
   const menu: MenuItem[] = [
     { label: 'Voucher Saya', icon: 'vouchers', href: '/vouchers', badge: loyalty?.active_vouchers, memberOnly: true },
     { label: 'Beli Voucher', icon: 'buy', href: { pathname: '/promo', params: { jenis: 'voucher' } } },
@@ -66,81 +67,38 @@ export default function HomeScreen() {
 
   return (
     <View style={{ flex: 1 }}>
-      {/* Header gelap: teks status bar putih hanya selama Beranda tampil. */}
-      {focused && <StatusBar style="light" />}
-      <ScrollView
-        contentContainerStyle={{ paddingBottom: 48 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}>
-        <View style={[styles.header, { paddingTop: insets.top + 14 }]}>
-          <View style={styles.headerRow}>
-            <View style={styles.logo}>
-              <LogoGlyph size={26} />
-            </View>
-            <View style={{ flex: 1, gap: 2 }}>
-              <WordReveal text={hello} size={14} color={colors.onPrimaryMuted} />
-              <WordReveal text={greeting().replace(',', '')} size={18} weight="extrabold" color="#FFFFFF" header delay={hello.split(' ').length * 110 + 60} />
-            </View>
-            {user ? (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={`${loyalty?.tier_label ?? ''}, ${number(loyalty?.points_balance ?? user.points_balance)} poin. Buka riwayat poin.`}
-                onPress={() => router.push('/points')}
-                style={({ pressed }) => [styles.pointsPill, pressed && { opacity: 0.9 }]}>
-                <View>
-                  <Txt weight="extrabold" size={11} color={colors.accentText} style={{ letterSpacing: 1 }}>
-                    {(loyalty?.tier_label ?? user.tier).toUpperCase()}
-                  </Txt>
-                  <Txt weight="extrabold" size={16}>
-                    {number(loyalty?.points_balance ?? user.points_balance)} Poin
-                  </Txt>
-                </View>
-                <Icon name="chevron" size={18} color={colors.muted} strokeWidth={2.2} />
-              </Pressable>
-            ) : (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Masuk atau daftar untuk kumpulkan poin"
-                onPress={() => router.push('/login')}
-                style={({ pressed }) => [styles.pointsPill, pressed && { opacity: 0.9 }]}>
-                <View>
-                  <Txt weight="extrabold" size={11} color={colors.accentText} style={{ letterSpacing: 1 }}>
-                    KUMPULKAN POIN
-                  </Txt>
-                  <Txt weight="extrabold" size={16}>
-                    Masuk
-                  </Txt>
-                </View>
-                <Icon name="chevron" size={18} color={colors.muted} strokeWidth={2.2} />
-              </Pressable>
-            )}
-          </View>
+      {/* Navbar putih di puncak: teks status bar gelap selama Beranda tampil. */}
+      {focused && <StatusBar style="dark" />}
 
-          {loyalty && (
-            <Pressable accessibilityRole="link" onPress={() => router.push('/tiers')} style={{ gap: 8 }} hitSlop={6}>
-              <View style={styles.track}>
-                <View style={[styles.fill, { width: `${Math.max(progress * 100, 2)}%` }]} />
-              </View>
-              <Txt size={12} color={colors.onPrimaryMuted}>
-                {loyalty.next_tier_label
-                  ? `${rupiah(loyalty.spend_to_next_tier)} lagi ke ${loyalty.next_tier_label} · cashback ${loyalty.cashback_percent}% sekarang`
-                  : `Level tertinggi · cashback ${loyalty.cashback_percent}%`}
-              </Txt>
-            </Pressable>
-          )}
+      {/* Di luar ScrollView: navbar tetap terlihat saat Beranda digulir. */}
+      <HomeNavbar
+        onSearch={() => router.navigate({ pathname: '/outlets', params: { cari: String(Date.now()) } })}
+        onMemberCard={memberOnly(() => setCardOpen(true))}
+      />
+
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: 40 }}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}>
+        <HomeHero promos={heroPromos} />
+
+        {/* Ringkasan poin & voucher, menumpang di tepi bawah banner. */}
+        <View style={styles.summary}>
+          <SummaryHalf
+            onPress={memberOnly(() => router.push('/points'))}
+            label={guest ? 'Tamu' : (loyalty?.tier_label ?? user?.tier ?? '')}
+            value={guest ? 'Masuk / Daftar' : `${number(loyalty?.points_balance ?? user?.points_balance ?? 0)} Poin`}
+            art={<TierMedal tier={loyalty?.tier ?? user?.tier ?? 'silver'} size={28} />}
+          />
+          <View style={styles.summaryDivider} />
+          <SummaryHalf
+            onPress={memberOnly(() => router.push('/vouchers'))}
+            label="Voucher"
+            value={guest ? 'Masuk dulu' : `${number(loyalty?.active_vouchers ?? 0)} Voucher`}
+            art={<MenuIcon name="vouchers" size={28} />}
+          />
         </View>
 
-        <Pressable
-          accessibilityRole="search"
-          accessibilityLabel="Cari outlet, brand, atau kota"
-          onPress={() => router.navigate({ pathname: '/outlets', params: { cari: String(Date.now()) } })}
-          style={styles.search}>
-          <Icon name="search" size={20} color={colors.muted} strokeWidth={2} />
-          <Txt size={14} color={colors.subtle}>
-            Cari outlet, brand, atau kota
-          </Txt>
-        </Pressable>
-
-        {/* Promo & outlet gagal dimuat (offline / koneksi lambat): jelaskan dan beri tombol coba lagi, jangan biarkan kosong. */}
+        {/* Promo & outlet gagal dimuat (offline / koneksi lambat): jelaskan dan beri tombol coba lagi. */}
         {(promos.error || outlets.error) && !promos.data && !outlets.data && (
           <ErrorState
             message={(promos.error ?? outlets.error)!}
@@ -151,91 +109,106 @@ export default function HomeScreen() {
           />
         )}
 
-        <View style={styles.menu}>
-          {menu.map((m) => (
-            <Pressable
-              key={m.label}
-              accessibilityRole="button"
-              accessibilityLabel={m.badge ? `${m.label}, ${m.badge} aktif` : m.label}
-              onPress={() => (guest && m.memberOnly ? router.push('/login') : router.navigate(m.href))}
-              style={({ pressed }) => [styles.menuItem, pressed && { opacity: 0.7 }]}>
-              <View style={styles.menuIcon}>
-                <MenuIcon name={m.icon} size={48} />
-                {m.badge ? (
-                  <View style={styles.badge}>
-                    <Txt weight="extrabold" size={11} color="#FFFFFF">
-                      {m.badge}
-                    </Txt>
-                  </View>
-                ) : null}
-              </View>
-              <Txt weight="semibold" size={12} style={{ textAlign: 'center' }} numberOfLines={2}>
-                {m.label}
-              </Txt>
-            </Pressable>
-          ))}
+        {/* Dua aksi utama member: kumpulkan poin & pakai poin. */}
+        <View style={styles.actions}>
+          <ActionCard title="Foto Struk" subtitle="Kirim struk, dapat poin" art={<ReceiptArt size={52} />} onPress={memberOnly(() => router.navigate('/struk'))} />
+          <ActionCard
+            title="Tukar Poin"
+            subtitle="Poin jadi voucher"
+            art={<RewardArt size={52} />}
+            onPress={() => router.navigate({ pathname: '/promo', params: { jenis: 'poin' } })}
+          />
         </View>
 
-        {/* Outlet memakai POS pihak ketiga: poin bisa diklaim dari foto struk. */}
-        {user && (
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => router.navigate('/struk')}
-            style={({ pressed }) => [styles.receiptCta, pressed && { opacity: 0.85 }]}>
-            <View style={styles.receiptIcon}>
-              <Icon name="camera" size={22} color={colors.accentInk} strokeWidth={2} />
-            </View>
-            <View style={{ flex: 1, gap: 2 }}>
-              <Txt weight="bold" size={14}>
-                Sudah belanja? Foto struknya
-              </Txt>
-              <Txt size={12} color={colors.muted}>
-                Kirim foto struk dari outlet Ocean Space, poin langsung masuk.
-              </Txt>
-            </View>
-            <Icon name="chevron" size={18} color={colors.subtle} strokeWidth={2} />
-          </Pressable>
-        )}
-
-        {(allPromos.length > 0 || promosLoading) && (
-          <View style={styles.section}>
-            <SectionHeader title="Promo pilihan" action="Semua promo" onPress={() => router.navigate({ pathname: '/promo', params: { jenis: '' } })} />
-            {promosLoading ? (
-              <SkeletonGroup style={{ paddingHorizontal: 16 }}>
-                <PromoCardSkeleton />
-              </SkeletonGroup>
+        <Pressable
+          accessibilityRole="button"
+          onPress={guest ? () => router.push('/login') : () => router.push('/tiers')}
+          style={({ pressed }) => [styles.banner, pressed && { opacity: 0.92 }]}>
+          <BlueGradient />
+          <View style={styles.bannerBadge}>
+            <TierMedal tier={loyalty?.next_tier ?? loyalty?.tier ?? 'gold'} size={34} />
+          </View>
+          <View style={{ flex: 1, gap: 3 }}>
+            <Txt weight="extrabold" size={15} color="#FFFFFF" numberOfLines={1}>
+              {guest
+                ? 'Daftar gratis, langsung dapat poin'
+                : loyalty?.next_tier_label
+                  ? `${rupiahShort(loyalty.spend_to_next_tier)} lagi ke ${loyalty.next_tier_label}`
+                  : `Kamu member ${loyalty?.tier_label ?? ''}`}
+            </Txt>
+            {!guest && loyalty?.next_tier_label ? (
+              <View style={styles.track}>
+                <View style={[styles.fill, { width: `${Math.max(progress * 100, 3)}%` }]} />
+              </View>
             ) : (
-              <PromoCarousel promos={allPromos.slice(0, 6)} />
+              <Txt size={12} color={colors.onPrimaryMuted} numberOfLines={1}>
+                {guest ? 'Cashback poin di semua brand grup.' : `Cashback ${loyalty?.cashback_percent ?? 0}% · level tertinggi`}
+              </Txt>
             )}
           </View>
-        )}
+          <View style={styles.bannerChip}>
+            <Txt weight="bold" size={12} color={colors.primary}>
+              {guest ? 'Masuk' : 'Benefit'}
+            </Txt>
+            <Icon name="chevron" size={14} color={colors.primary} strokeWidth={2.4} />
+          </View>
+        </Pressable>
+
+        <View style={styles.section}>
+          <SectionHeader title="Layanan member" />
+          <View style={styles.menu}>
+            {menu.map((m) => (
+              <Pressable
+                key={m.label}
+                accessibilityRole="button"
+                accessibilityLabel={m.badge ? `${m.label}, ${m.badge} aktif` : m.label}
+                onPress={() => (guest && m.memberOnly ? router.push('/login') : router.navigate(m.href))}
+                style={({ pressed }) => [styles.menuItem, pressed && { opacity: 0.7 }]}>
+                <View style={styles.menuIcon}>
+                  <MenuIcon name={m.icon} size={44} />
+                  {m.badge ? (
+                    <View style={styles.badge}>
+                      <Txt weight="extrabold" size={11} color="#FFFFFF">
+                        {m.badge}
+                      </Txt>
+                    </View>
+                  ) : null}
+                </View>
+                <Txt weight="semibold" size={12} style={{ textAlign: 'center' }} numberOfLines={2}>
+                  {m.label}
+                </Txt>
+              </Pressable>
+            ))}
+          </View>
+        </View>
 
         {rewards.length > 0 && (
           <View style={styles.section}>
-            <SectionHeader
-              title="Tukar poin"
-              action="Lihat semua"
-              onPress={() => router.navigate({ pathname: '/promo', params: { jenis: 'poin' } })}
-            />
+            <SectionHeader title="Tukar poin" action="Lihat semua" onPress={() => router.navigate({ pathname: '/promo', params: { jenis: 'poin' } })} />
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}>
               {rewards.map((p) => (
                 <Pressable
                   key={p.id}
                   accessibilityRole="button"
                   onPress={() => router.navigate({ pathname: '/promo', params: { jenis: 'poin' } })}
-                  style={styles.reward}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                    <View style={[styles.rewardDot, { backgroundColor: p.brand?.color ?? colors.primary }]} />
-                    <Txt weight="semibold" size={11} color={colors.muted} numberOfLines={1} style={{ flex: 1 }}>
+                  style={({ pressed }) => [styles.reward, pressed && { opacity: 0.85 }]}>
+                  <View style={styles.rewardTop}>
+                    <BlueGradient />
+                    <Txt weight="extrabold" size={20} color="#FFFFFF" style={{ letterSpacing: -0.4 }}>
+                      {rupiahShort(p.voucher!.value)}
+                    </Txt>
+                    <Txt weight="semibold" size={11} color={colors.onPrimaryMuted} numberOfLines={1}>
                       {p.is_universal ? 'Semua outlet' : p.brand?.name}
                     </Txt>
                   </View>
-                  <Txt weight="extrabold" size={20} style={{ letterSpacing: -0.4 }}>
-                    {rupiahShort(p.voucher!.value)}
-                  </Txt>
-                  <Txt weight="bold" size={12} color={colors.accentText}>
-                    {number(p.voucher!.price_points!)} poin
-                  </Txt>
+                  <View style={styles.rewardBottom}>
+                    <Txt weight="semibold" size={12} numberOfLines={2} style={{ lineHeight: 16 }}>
+                      {p.title}
+                    </Txt>
+                    <Txt weight="bold" size={13} color={colors.accentText}>
+                      {number(p.voucher!.price_points!)} poin
+                    </Txt>
+                  </View>
                 </Pressable>
               ))}
             </ScrollView>
@@ -245,108 +218,143 @@ export default function HomeScreen() {
         {(nearby.length > 0 || outletsLoading) && (
           <View style={styles.section}>
             <SectionHeader title={location.coords ? 'Outlet terdekat' : 'Outlet'} action="Semua outlet" onPress={() => router.navigate('/outlets')} />
-            {outletsLoading ? (
-              <OutletListSkeleton count={3} />
-            ) : (
-              <View>
-                {nearby.map((o, i) => (
+            <LocationPrompt location={location} style={{ marginHorizontal: 16 }} />
+            <View style={styles.listCard}>
+              {outletsLoading ? (
+                <OutletListSkeleton count={3} />
+              ) : (
+                nearby.map((o, i) => (
                   <View key={o.id}>
                     {i > 0 && <OutletSeparator />}
                     <OutletRow outlet={o} />
                   </View>
-                ))}
-              </View>
-            )}
+                ))
+              )}
+            </View>
           </View>
         )}
-      </ScrollView>
-    </View>
-  );
-}
 
-function SectionHeader({ title, subtitle, action, onPress }: { title: string; subtitle?: string; action: string; onPress: () => void }) {
-  return (
-    <View style={styles.sectionHeader}>
-      <View style={{ flex: 1, gap: 2 }}>
-        <Txt weight="extrabold" size={18} accessibilityRole="header">
-          {title}
-        </Txt>
-        {subtitle && (
-          <Txt size={13} color={colors.muted}>
-            {subtitle}
+        {!guest && loyalty && (
+          <Txt size={12} color={colors.subtle} style={styles.footnote}>
+            Belanja 12 bulan terakhir {rupiah(loyalty.annual_spend)} · cashback {loyalty.cashback_percent}%
           </Txt>
         )}
-      </View>
-      <Pressable onPress={onPress} accessibilityRole="link" hitSlop={12}>
-        <Txt weight="semibold" size={13} color={colors.accentText}>
-          {action}
-        </Txt>
-      </Pressable>
+      </ScrollView>
+
+      <MemberQrSheet visible={cardOpen} onClose={() => setCardOpen(false)} />
     </View>
   );
 }
 
+function SummaryHalf({ label, value, art, onPress }: { label: string; value: string; art: ReactNode; onPress: () => void }) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${label}, ${value}`}
+      onPress={onPress}
+      style={({ pressed }) => [styles.summaryHalf, pressed && { opacity: 0.7 }]}>
+      {art}
+      <View style={{ flex: 1 }}>
+        <Txt size={13} color={colors.inkSoft} numberOfLines={1} style={{ lineHeight: 17 }}>
+          {label}
+        </Txt>
+        <Txt weight="bold" size={14} numberOfLines={1} style={{ lineHeight: 19 }}>
+          {value}
+        </Txt>
+      </View>
+    </Pressable>
+  );
+}
+
+function ActionCard({ title, subtitle, art, onPress }: { title: string; subtitle: string; art: ReactNode; onPress: () => void }) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${title}, ${subtitle}`}
+      onPress={onPress}
+      style={({ pressed }) => [styles.action, pressed && { opacity: 0.85 }]}>
+      {art}
+      <View style={{ flex: 1, gap: 2 }}>
+        <Txt weight="extrabold" size={16} numberOfLines={1}>
+          {title}
+        </Txt>
+        <Txt size={12} color={colors.muted} numberOfLines={2}>
+          {subtitle}
+        </Txt>
+      </View>
+    </Pressable>
+  );
+}
+
+function SectionHeader({ title, action, onPress }: { title: string; action?: string; onPress?: () => void }) {
+  return (
+    <View style={styles.sectionHeader}>
+      <Txt weight="extrabold" size={17} accessibilityRole="header" style={{ flex: 1 }}>
+        {title}
+      </Txt>
+      {action && onPress && (
+        <Pressable onPress={onPress} accessibilityRole="link" hitSlop={12}>
+          <Txt weight="semibold" size={13} color={colors.accentText}>
+            {action}
+          </Txt>
+        </Pressable>
+      )}
+    </View>
+  );
+}
+
+const card = {
+  backgroundColor: colors.surface,
+  borderRadius: 16,
+  borderWidth: 1,
+  borderColor: colors.line,
+  boxShadow: `0 4px 14px ${colors.shadow}`,
+} as const;
+
 const styles = StyleSheet.create({
-  receiptCta: {
+  // Kartu ringkas (±54pt) yang menumpang setengahnya di tepi bawah banner.
+  summary: { ...card, flexDirection: 'row', alignItems: 'center', marginHorizontal: 16, marginTop: -28, paddingVertical: 10 },
+  summaryHalf: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, paddingLeft: 20, paddingRight: 10 },
+  summaryDivider: { width: 1, height: 30, backgroundColor: colors.line },
+  actions: { flexDirection: 'row', gap: 12, marginHorizontal: 16, marginTop: 14 },
+  action: { ...card, flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 16, paddingHorizontal: 12, minHeight: 86 },
+  banner: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
     marginHorizontal: 16,
-    marginTop: 28,
-    padding: 14,
+    marginTop: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 14,
     borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.line,
-    backgroundColor: colors.surface,
+    overflow: 'hidden',
   },
-  receiptIcon: { width: 44, height: 44, borderRadius: 12, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
-  header: { backgroundColor: colors.primary, paddingHorizontal: 16, paddingBottom: 18, gap: 16 },
-  headerRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  logo: { width: 44, height: 44, borderRadius: 12, backgroundColor: colors.primaryMid, alignItems: 'center', justifyContent: 'center' },
-  pointsPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingLeft: 16,
-    paddingRight: 10,
-    paddingVertical: 8,
-    borderRadius: 999,
-    backgroundColor: colors.surface,
-  },
-  track: { height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.14)', overflow: 'hidden' },
-  fill: { height: '100%', borderRadius: 2, backgroundColor: colors.accent },
-  search: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    height: 50,
-    marginHorizontal: 16,
-    marginTop: 16,
-    paddingHorizontal: 16,
-    borderRadius: 14,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.line,
-  },
-  menu: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 8, paddingTop: 20, rowGap: 18 },
-  menuItem: { width: '25%', alignItems: 'center', gap: 8, paddingHorizontal: 4 },
-  menuIcon: { width: 56, height: 52, alignItems: 'center', justifyContent: 'center' },
+  bannerBadge: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.16)', alignItems: 'center', justifyContent: 'center' },
+  bannerChip: { flexDirection: 'row', alignItems: 'center', gap: 2, paddingLeft: 12, paddingRight: 8, height: 32, borderRadius: 16, backgroundColor: '#FFFFFF' },
+  track: { height: 5, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.22)', overflow: 'hidden', marginTop: 4 },
+  fill: { height: '100%', borderRadius: 3, backgroundColor: '#FFFFFF' },
+  section: { marginTop: 26, gap: 12 },
+  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16 },
+  menu: { ...card, flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: 16, paddingVertical: 16, paddingHorizontal: 4, rowGap: 18 },
+  menuItem: { width: '25%', alignItems: 'center', gap: 6, paddingHorizontal: 2 },
+  menuIcon: { width: 52, height: 48, alignItems: 'center', justifyContent: 'center' },
   badge: {
     position: 'absolute',
     top: -4,
-    right: -6,
-    minWidth: 22,
-    height: 22,
-    paddingHorizontal: 6,
-    borderRadius: 11,
+    right: 0,
+    minWidth: 18,
+    height: 18,
+    paddingHorizontal: 5,
+    borderRadius: 9,
     borderWidth: 2,
-    borderColor: colors.ground,
-    backgroundColor: colors.primary,
+    borderColor: colors.surface,
+    backgroundColor: colors.accent,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  section: { marginTop: 32, gap: 12 },
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', gap: 12, paddingHorizontal: 16 },
-  reward: { width: 140, backgroundColor: colors.surface, borderRadius: 14, borderWidth: 1, borderColor: colors.line, padding: 12, gap: 4 },
-  rewardDot: { width: 8, height: 8, borderRadius: 4 },
+  reward: { ...card, width: 168, overflow: 'hidden' },
+  rewardTop: { height: 76, justifyContent: 'flex-end', paddingHorizontal: 12, paddingBottom: 10, overflow: 'hidden' },
+  rewardBottom: { padding: 12, gap: 6 },
+  listCard: { ...card, marginHorizontal: 16, overflow: 'hidden' },
+  footnote: { textAlign: 'center', marginTop: 24, paddingHorizontal: 16 },
 });

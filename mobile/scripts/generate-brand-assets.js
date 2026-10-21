@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Membuat ulang semua aset logo dari satu definisi bentuk (empat kelopak emas di latar hitam),
+ * Membuat ulang semua aset logo dari satu definisi bentuk (empat kelopak biru muda & putih di latar sapphire),
  * persis sama dengan logo di aplikasi (src/components/logo.tsx). Tanpa dependensi:
  *
  *   npm run brand
@@ -27,11 +27,12 @@ const BACKEND_PUBLIC = path.resolve(ROOT, '../backend/public');
 // KONFIGURASI
 // ---------------------------------------------------------------------------------------------
 
-const INK = '#18181B'; // latar merek (colors.primary)
-const GOLD_DEEP = '#C8A464';
-const GOLD_PALE = '#E6CF9C';
+const INK = '#1E40AF'; // latar merek (colors.primary, biru sapphire)
+// Sama dengan logoPetals di constants/theme.ts: biru muda & putih.
+const PETAL_SOFT = '#9DBCFA';
+const PETAL_LIGHT = '#FFFFFF';
 // Urutan searah jarum jam dari kiri-atas, sama dengan logo.tsx: dalam-terang-dalam-terang.
-const PETAL_COLORS = [GOLD_DEEP, GOLD_PALE, GOLD_DEEP, GOLD_PALE];
+const PETAL_COLORS = [PETAL_SOFT, PETAL_LIGHT, PETAL_SOFT, PETAL_LIGHT];
 
 // Lebar logo sebagai bagian dari sisi ikon.
 const IOS_GLYPH = 0.55;
@@ -230,7 +231,7 @@ const at = (relative) => path.join(ROOT, relative);
 // iOS: persegi penuh tanpa sudut membulat & tanpa piksel transparan; sistem yang membulatkan.
 write(at('assets/images/icon.png'), render(1024, IOS_GLYPH, { background: INK, colors: PETAL_COLORS }));
 // iOS 18+ gelap: latar sedikit lebih dalam, logo tetap.
-write(at('assets/images/ios-dark.png'), render(1024, IOS_GLYPH, { background: '#0B0B0C', colors: PETAL_COLORS }));
+write(at('assets/images/ios-dark.png'), render(1024, IOS_GLYPH, { background: '#0A1A4A', colors: PETAL_COLORS }));
 // iOS 18+ tinted: abu-abu di atas hitam; sistem mewarnainya sesuai pilihan pengguna.
 write(at('assets/images/ios-tinted.png'), render(1024, IOS_GLYPH, { background: '#000000', colors: ['#9A9A9A', '#F2F2F2', '#9A9A9A', '#F2F2F2'] }));
 

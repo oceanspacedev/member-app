@@ -14,15 +14,14 @@ import Animated, {
 } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
 
-import { colors } from '@/constants/theme';
+import { colors, logoPetals } from '@/constants/theme';
 
 import { Txt } from './ui';
 
-// Sama dengan splash bawaan (app.json: latar #18181B, logo selebar 110) agar peralihannya mulus.
+// Sama dengan splash bawaan (app.json: latar colors.primary, logo selebar 110) agar peralihannya mulus.
 const LOGO = 110;
 const PETAL_D = 'M18.5 18.5H9.25A9.25 9.25 0 0 1 0 9.25A9.25 9.25 0 0 1 9.25 0A9.25 9.25 0 0 1 18.5 9.25Z';
 const PETAL = (LOGO * 18.5) / 40;
-const GOLD = ['#C8A464', '#E6CF9C'];
 // Urutan searah jarum jam: kiri-atas, kanan-atas, kanan-bawah, kiri-bawah (sudut tajam menghadap tengah).
 const PLACES = [
   { deg: 0, left: 0, top: 0 },
@@ -90,7 +89,7 @@ export function AppIntro({ ready, onDone }: { ready: boolean; onDone: () => void
       <StatusBar style="light" />
       <Animated.View style={[styles.logo, { left: width / 2 - LOGO / 2, top: height / 2 - LOGO / 2 }, logoStyle]}>
         {PLACES.map((place, i) => (
-          <Petal key={place.deg} place={place} color={GOLD[i % 2]} pulse={[p0, p1, p2, p3][i]} />
+          <Petal key={place.deg} place={place} color={logoPetals[i % 2]} pulse={[p0, p1, p2, p3][i]} />
         ))}
       </Animated.View>
 
@@ -98,7 +97,7 @@ export function AppIntro({ ready, onDone }: { ready: boolean; onDone: () => void
         <Txt weight="extrabold" size={26} color="#FFFFFF" style={{ letterSpacing: -0.4 }}>
           Ocean Space
         </Txt>
-        <Txt weight="bold" size={11} color={colors.accent} style={{ letterSpacing: 3.5 }}>
+        <Txt weight="bold" size={11} color={colors.accentOnDark} style={{ letterSpacing: 3.5 }}>
           MEMBER CLUB
         </Txt>
         <View style={styles.track}>
@@ -127,5 +126,5 @@ const styles = StyleSheet.create({
   petal: { position: 'absolute', width: PETAL, height: PETAL },
   text: { position: 'absolute', left: 0, right: 0, alignItems: 'center', gap: 6 },
   track: { width: 120, height: 3, borderRadius: 2, marginTop: 18, backgroundColor: 'rgba(255,255,255,0.12)', overflow: 'hidden' },
-  fill: { height: '100%', borderRadius: 2, backgroundColor: colors.accent },
+  fill: { height: '100%', borderRadius: 2, backgroundColor: colors.accentOnDark },
 });

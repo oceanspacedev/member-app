@@ -4,6 +4,7 @@ import { FlatList, Pressable, RefreshControl, ScrollView, StyleSheet, TextInput,
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Icon } from '@/components/icon';
+import { LocationPrompt } from '@/components/location-prompt';
 import { OutletRow, OutletSeparator } from '@/components/outlet-row';
 import { OutletListSkeleton } from '@/components/skeleton';
 import { EmptyState, ErrorState } from '@/components/state';
@@ -11,7 +12,7 @@ import { Chip, Txt } from '@/components/ui';
 import { categories, colors, fonts } from '@/constants/theme';
 import type { Outlet } from '@/lib/types';
 import { useApi } from '@/lib/use-api';
-import { useLocation } from '@/lib/use-location';
+import { NEEDS_ACTION, useLocation } from '@/lib/use-location';
 
 export default function OutletsScreen() {
   // category: dari kategori · brand_id + brand: dari menu Brand Grup · cari: dari kolom cari di Beranda (fokuskan input)
@@ -62,18 +63,16 @@ export default function OutletsScreen() {
         <Txt weight="extrabold" size={22} accessibilityRole="header">
           Outlet Terdekat
         </Txt>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-          <Icon name="pin" size={14} color={colors.primary} strokeWidth={2.2} />
-          <Txt size={12} color={colors.muted}>
-            {location.coords
-              ? 'Diurutkan dari lokasi GPS kamu'
-              : location.denied
-                ? 'Akses lokasi ditolak — jarak tidak ditampilkan'
-                : location.loading
-                  ? 'Mencari lokasi…'
-                  : 'Lokasi tidak tersedia'}
-          </Txt>
-        </View>
+        {NEEDS_ACTION.includes(location.status) ? (
+          <LocationPrompt location={location} />
+        ) : (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <Icon name="pin" size={14} color={colors.primary} strokeWidth={2.2} />
+            <Txt size={12} color={colors.muted}>
+              {location.coords ? 'Diurutkan dari lokasi GPS kamu' : location.loading ? 'Mencari lokasi…' : 'Lokasi belum ditemukan — tarik ke bawah untuk coba lagi'}
+            </Txt>
+          </View>
+        )}
         <View style={styles.search}>
           <Icon name="search" size={20} color={colors.muted} strokeWidth={2} />
           <TextInput

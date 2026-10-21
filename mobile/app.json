@@ -7,7 +7,7 @@
     "icon": "./assets/images/icon.png",
     "scheme": "oceanspace",
     "userInterfaceStyle": "light",
-    "primaryColor": "#18181B",
+    "primaryColor": "#1E40AF",
     "ios": {
       "bundleIdentifier": "id.co.oceanspace.member",
       "icon": {
@@ -22,7 +22,7 @@
     "android": {
       "package": "id.co.oceanspace.member",
       "adaptiveIcon": {
-        "backgroundColor": "#18181B",
+        "backgroundColor": "#1E40AF",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
@@ -37,7 +37,7 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#18181B",
+          "backgroundColor": "#1E40AF",
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 110
         }

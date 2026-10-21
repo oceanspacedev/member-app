@@ -1,35 +1,46 @@
 /**
- * Token visual Ocean Space — palet monokrom & emas: tampilan netral agar warna tiap brand
- * yang menonjol di kartu promo. `primary` = hitam merek, `accent` = emas, `success`/`danger` = makna.
+ * Token visual Ocean Space — palet "biru sapphire": latar putih kebiruan, permukaan utama
+ * (header, kartu gelap) biru sapphire, aksi & sorotan biru terang.
+ * `primary` = sapphire merek, `accent` = biru aksi (teks putih di atasnya),
+ * `accentOnDark` = aksen di atas latar sapphire/gelap, `success`/`danger` = makna.
  */
 export const colors = {
-  ground: '#F7F7F5',
+  ground: '#F4F7FC',
   surface: '#FFFFFF',
-  ink: '#18181B',
-  inkSoft: '#3F3F46',
-  muted: '#67676F',
-  subtle: '#77777F',
-  line: '#E7E5E4',
-  lineSoft: '#F1F0EE',
-  inputBorder: '#D6D3D1',
+  ink: '#0F172A',
+  inkSoft: '#334155',
+  muted: '#5F6C80',
+  subtle: '#6B778C',
+  line: '#E2E8F0',
+  lineSoft: '#EEF2F7',
+  inputBorder: '#CBD5E1',
 
-  primary: '#18181B',
-  primaryDark: '#0E0E10',
-  primaryMid: '#232327',
-  primaryLine: '#3A3A40',
-  primarySoft: '#EEEDEA',
-  onPrimaryMuted: '#A9A9B1',
+  primary: '#1E40AF',
+  primaryDark: '#172F86',
+  primaryMid: '#2B4FC0',
+  primaryLine: '#3B5FCB',
+  primarySoft: '#E8EEFB',
+  onPrimaryMuted: '#BCCBF2',
 
-  accent: '#C8A464',
-  accentInk: '#2E2412',
-  accentText: '#7A5F2A',
-  accentSoft: '#F4EEDF',
-  accentLine: '#E4D6B8',
+  accent: '#2563EB',
+  accentInk: '#FFFFFF',
+  accentText: '#1D4ED8',
+  accentSoft: '#EAF0FE',
+  accentLine: '#C7D6FB',
+  /** Biru muda untuk teks, garis & titik aksen di atas latar sapphire/gelap, agar tetap kontras. */
+  accentOnDark: '#9DBCFA',
+
+  /** Bayangan & latar redup (modal), dari warna tinta. */
+  shade: 'rgba(15, 23, 42, 0.45)',
+  shadow: 'rgba(15, 23, 42, 0.08)',
 
   success: '#1E7A4C',
   danger: '#B3261E',
   dangerSoft: '#FBE9E7',
 } as const;
+
+/** Dua warna kelopak logo (berselang-seling) di atas kotak sapphire. */
+export const logoPetals = ['#9DBCFA', '#FFFFFF'] as const;
 
 export const fonts = {
   regular: 'PlusJakartaSans_400Regular',
@@ -52,7 +63,7 @@ export type CategoryKey = (typeof categories)[number]['key'];
 
 /** Warna kartu tier — cukup gelap agar teks putih tetap terbaca (kontras ≥ 4.5:1). */
 export const tierColors: Record<string, string> = {
-  silver: '#6F747D',
+  silver: '#5F6B7D',
   gold: '#8E6B2C',
-  platinum: '#3E424C',
+  platinum: '#1B2A55',
 };

@@ -54,7 +54,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             <Icon
               name={toast.tone === 'error' ? 'info' : 'check'}
               size={18}
-              color={toast.tone === 'error' ? '#F28B6B' : toast.tone === 'success' ? '#5CD39A' : colors.accent}
+              color={toast.tone === 'error' ? '#F28B6B' : toast.tone === 'success' ? '#5CD39A' : colors.accentOnDark}
               strokeWidth={2.4}
             />
             <Txt weight="semibold" size={13} color="#FFFFFF" style={{ flexShrink: 1 }}>

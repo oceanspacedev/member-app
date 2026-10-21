@@ -42,7 +42,7 @@ type ButtonProps = Omit<PressableProps, 'style'> & {
 
 const buttonVariants = {
   primary: { bg: colors.primary, fg: '#FFFFFF', border: colors.primary },
-  brass: { bg: colors.accent, fg: colors.accentInk, border: '#B08F50' },
+  brass: { bg: colors.accent, fg: colors.accentInk, border: colors.accent },
   secondary: { bg: colors.surface, fg: colors.ink, border: colors.inputBorder },
   outline: { bg: 'transparent', fg: colors.primary, border: colors.primary },
   light: { bg: '#FFFFFF', fg: colors.primaryDark, border: '#FFFFFF' },

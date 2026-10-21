@@ -1,22 +1,21 @@
 import Svg, { G, Path, Rect } from 'react-native-svg';
 
-import { colors } from '@/constants/theme';
+import { colors, logoPetals } from '@/constants/theme';
 
 // Sumber: assets/brand/logo-mark.svg. Empat kelopak = empat lini bisnis grup yang menyatu.
 const PETAL = 'M18.5 18.5H9.25A9.25 9.25 0 0 1 0 9.25A9.25 9.25 0 0 1 9.25 0A9.25 9.25 0 0 1 18.5 9.25Z';
-const GOLD = ['#C8A464', '#E6CF9C'];
 
 function Petals() {
   return (
     <>
       {[0, 90, 180, 270].map((deg, i) => (
-        <Path key={deg} d={PETAL} fill={GOLD[i % 2]} transform={`rotate(${deg} 20 20)`} />
+        <Path key={deg} d={PETAL} fill={logoPetals[i % 2]} transform={`rotate(${deg} 20 20)`} />
       ))}
     </>
   );
 }
 
-/** Logo aplikasi: kelopak emas di kotak hitam. */
+/** Logo aplikasi: kelopak biru muda & putih di kotak sapphire. */
 export function LogoMark({ size = 48 }: { size?: number }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 48 48" accessibilityLabel="Logo Ocean Space">

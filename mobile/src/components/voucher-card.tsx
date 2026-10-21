@@ -27,7 +27,7 @@ function statusLine(voucher: Voucher): { text: string; urgent?: boolean } {
 /** Kartu bergaya tiket: blok nilai di kiri, keterangan di kanan. */
 export function VoucherCard({ voucher }: { voucher: Voucher }) {
   const active = voucher.status === 'active';
-  const color = active ? (voucher.brand?.color ?? colors.primary) : colors.subtle;
+  const color = active ? colors.primary : colors.subtle;
   const status = statusLine(voucher);
 
   return (

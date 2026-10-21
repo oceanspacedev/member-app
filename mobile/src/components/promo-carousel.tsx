@@ -96,19 +96,24 @@ function PromoSlide({ promo, width }: { promo: Promo; width: number }) {
 
   return (
     <Pressable accessibilityRole="button" onPress={() => router.navigate('/promo')} style={[styles.slide, { width }]}>
-      <View style={[styles.photo, { backgroundColor: promo.brand?.color ?? colors.primary }]}>
+      <View style={[styles.photo, { backgroundColor: colors.primary }]}>
         {promo.image_url && <Photo uri={promo.image_url} label={promo.title} style={StyleSheet.absoluteFill} />}
-        <Scrim from={0} to={0.55} />
-        <View style={styles.photoText}>
-          <Txt weight="extrabold" size={26} color="#FFFFFF" style={{ letterSpacing: -0.5 }}>
-            {promo.highlight}
-          </Txt>
-          {promo.highlight_caption && (
-            <Txt weight="semibold" size={13} color="#FFFFFF">
-              {promo.highlight_caption}
-            </Txt>
-          )}
-        </View>
+        {/* Tanpa teks besar, gambar (yang sudah berisi teks desain) tampil bersih tanpa bayangan. */}
+        {promo.highlight ? (
+          <>
+            <Scrim from={0} to={0.55} />
+            <View style={styles.photoText}>
+              <Txt weight="extrabold" size={26} color="#FFFFFF" style={{ letterSpacing: -0.5 }}>
+                {promo.highlight}
+              </Txt>
+              {promo.highlight_caption && (
+                <Txt weight="semibold" size={13} color="#FFFFFF">
+                  {promo.highlight_caption}
+                </Txt>
+              )}
+            </View>
+          </>
+        ) : null}
       </View>
       <View style={{ paddingHorizontal: 14, paddingVertical: 12, gap: 3 }}>
         <Txt size={12} color={colors.muted}>

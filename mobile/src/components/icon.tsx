@@ -1,6 +1,8 @@
 import { Platform, View, type ColorValue } from 'react-native';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
+import { colors } from '@/constants/theme';
+
 const paths = {
   home: <Path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z" />,
   tag: (
@@ -199,7 +201,7 @@ export function WhatsAppBadge({ size = 28 }: { size?: number }) {
   );
 }
 
-export function Icon({ name, size = 24, color = '#18181B', strokeWidth = 1.8 }: { name: IconName; size?: number; color?: ColorValue; strokeWidth?: number }) {
+export function Icon({ name, size = 24, color = colors.ink, strokeWidth = 1.8 }: { name: IconName; size?: number; color?: ColorValue; strokeWidth?: number }) {
   return (
     <Svg
       width={size}

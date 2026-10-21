@@ -19,13 +19,13 @@ import { Txt } from './ui';
 
 /*
  * Ilustrasi layar pengenalan, digambar dari bentuk dasar dengan bahasa visual yang sama dengan aplikasi
- * (kartu hitam, aksen emas, kelopak logo). Semua dirancang di kanvas 300×300 lalu diskalakan oleh ArtFrame.
+ * (kartu navy, aksen biru muda, kelopak logo). Semua dirancang di kanvas 300×300 lalu diskalakan oleh ArtFrame.
  * Teks di dalam ilustrasi tidak ikut membesar saat pengguna memperbesar huruf: ini gambar, bukan konten.
  */
 
 const CANVAS = 300;
-const PANEL = '#232327';
-const PANEL_LINE = '#3A3A40';
+const PANEL = colors.primaryDark;
+const PANEL_LINE = colors.primaryLine;
 
 /** Menempatkan kanvas 300×300 di tengah kotak `size`, diskalakan, dan disembunyikan dari pembaca layar. */
 export function ArtFrame({ size, children }: { size: number; children: ReactNode }) {
@@ -46,16 +46,16 @@ export function ArtFrame({ size, children }: { size: number; children: ReactNode
   );
 }
 
-/** Cahaya emas lembut di belakang ilustrasi. */
+/** Cahaya biru lembut di belakang ilustrasi. */
 function Halo() {
   const id = `halo${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
   return (
     <Svg width={CANVAS} height={CANVAS} viewBox={`0 0 ${CANVAS} ${CANVAS}`} style={StyleSheet.absoluteFill}>
       <Defs>
         <RadialGradient id={id} cx="50%" cy="50%" r="50%">
-          <Stop offset="0" stopColor={colors.accent} stopOpacity={0.3} />
-          <Stop offset="0.55" stopColor={colors.accent} stopOpacity={0.09} />
-          <Stop offset="1" stopColor={colors.accent} stopOpacity={0} />
+          <Stop offset="0" stopColor={colors.accentOnDark} stopOpacity={0.3} />
+          <Stop offset="0.55" stopColor={colors.accentOnDark} stopOpacity={0.09} />
+          <Stop offset="1" stopColor={colors.accentOnDark} stopOpacity={0} />
         </RadialGradient>
       </Defs>
       <Circle cx={150} cy={150} r={150} fill={`url(#${id})`} />
@@ -137,7 +137,7 @@ export function MemberCardArt() {
             </View>
           </View>
           <View style={{ gap: 5 }}>
-            <Txt weight="bold" size={10} color={colors.accent} style={{ letterSpacing: 3 }} allowFontScaling={false}>
+            <Txt weight="bold" size={10} color={colors.accentOnDark} style={{ letterSpacing: 3 }} allowFontScaling={false}>
               MEMBER CLUB
             </Txt>
             <Txt weight="semibold" size={15} color="#FFFFFF" style={{ letterSpacing: 2 }} allowFontScaling={false}>
@@ -147,10 +147,10 @@ export function MemberCardArt() {
         </View>
       </Float>
 
-      <BrandChip label="Kuliner" dot={colors.accent} style={{ left: 6, top: 38 }} delay={0} />
-      <BrandChip label="Fast Food" dot="#E6CF9C" style={{ right: 4, top: 22 }} delay={500} />
+      <BrandChip label="Kuliner" dot={colors.accentOnDark} style={{ left: 6, top: 38 }} delay={0} />
+      <BrandChip label="Fast Food" dot={colors.accentOnDark} style={{ right: 4, top: 22 }} delay={500} />
       <BrandChip label="Retail & Emas" dot="#FFFFFF" style={{ left: 18, bottom: 34 }} delay={900} />
-      <BrandChip label="Sports" dot={colors.accent} style={{ right: 12, bottom: 48 }} delay={300} />
+      <BrandChip label="Sports" dot={colors.accentOnDark} style={{ right: 12, bottom: 48 }} delay={300} />
     </View>
   );
 }
@@ -200,7 +200,7 @@ export function ReceiptArt() {
 
       {/* Bingkai pindai di sudut-sudut kertas. */}
       <Svg width={232} height={292} viewBox="0 0 232 292" style={styles.frame}>
-        <G stroke={colors.accent} strokeWidth={4} strokeLinecap="round" fill="none">
+        <G stroke={colors.accentOnDark} strokeWidth={4} strokeLinecap="round" fill="none">
           <Path d="M2 28V12A10 10 0 0 1 12 2H28" />
           <Path d="M204 2H220A10 10 0 0 1 230 12V28" />
           <Path d="M230 264V280A10 10 0 0 1 220 290H204" />
@@ -328,7 +328,7 @@ export function VoucherLevelArt() {
       <Float style={styles.tierWrap} rotate="3deg" amplitude={4} delay={500}>
         <View style={styles.tierCard}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
-            <Icon name="crown" size={15} color={colors.accent} strokeWidth={2} />
+            <Icon name="crown" size={15} color={colors.accentOnDark} strokeWidth={2} />
             <Txt weight="semibold" size={11} color="#FFFFFF" allowFontScaling={false}>
               Naik level, cashback makin besar
             </Txt>
@@ -372,7 +372,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     height: 28,
     borderRadius: 14,
-    backgroundColor: 'rgba(35, 35, 39, 0.96)',
+    backgroundColor: 'rgba(23, 47, 134, 0.96)',
     borderWidth: 1,
     borderColor: PANEL_LINE,
   },
@@ -390,7 +390,7 @@ const styles = StyleSheet.create({
     boxShadow: '0 16px 30px rgba(0, 0, 0, 0.45)',
   },
   paperBody: { flex: 1, paddingHorizontal: 16, paddingTop: 18, paddingBottom: 22, justifyContent: 'space-between' },
-  dash: { height: 0, borderTopWidth: 1.5, borderStyle: 'dashed', borderColor: '#D6D3D1' },
+  dash: { height: 0, borderTopWidth: 1.5, borderStyle: 'dashed', borderColor: colors.inputBorder },
   bar: { height: 7, borderRadius: 4, backgroundColor: colors.line },
   scanLine: {
     position: 'absolute',
@@ -399,7 +399,7 @@ const styles = StyleSheet.create({
     height: 3,
     borderRadius: 2,
     backgroundColor: colors.accent,
-    boxShadow: '0 0 16px rgba(200, 164, 100, 0.95)',
+    boxShadow: '0 0 16px rgba(157, 188, 250, 0.95)',
   },
   pointsWrap: { position: 'absolute', right: 2, bottom: 6 },
   points: {
@@ -437,5 +437,5 @@ const styles = StyleSheet.create({
   nodes: { flexDirection: 'row', justifyContent: 'space-between' },
   node: { width: 20, height: 20, borderRadius: 10, backgroundColor: PANEL, borderWidth: 2, borderColor: PANEL_LINE, alignItems: 'center', justifyContent: 'center' },
   nodeDone: { backgroundColor: colors.accent, borderColor: colors.accent },
-  nodeCurrent: { backgroundColor: colors.accent, borderColor: '#F4EEDF', width: 22, height: 22, borderRadius: 11, marginTop: -1 },
+  nodeCurrent: { backgroundColor: colors.accent, borderColor: colors.accentSoft, width: 22, height: 22, borderRadius: 11, marginTop: -1 },
 });

@@ -11,7 +11,7 @@ export function GuestPrompt({ icon, title, text, dark }: { icon: IconName; title
   return (
     <View style={styles.box}>
       <View style={[styles.icon, dark && { backgroundColor: 'rgba(255,255,255,0.08)' }]}>
-        <Icon name={icon} size={30} color={dark ? colors.accent : colors.primary} strokeWidth={1.8} />
+        <Icon name={icon} size={30} color={dark ? colors.accentOnDark : colors.primary} strokeWidth={1.8} />
       </View>
       <Txt weight="extrabold" size={18} color={dark ? '#FFFFFF' : colors.ink} style={{ textAlign: 'center' }} accessibilityRole="header">
         {title}
@@ -19,7 +19,8 @@ export function GuestPrompt({ icon, title, text, dark }: { icon: IconName; title
       <Txt size={14} color={dark ? colors.onPrimaryMuted : colors.muted} style={styles.text}>
         {text}
       </Txt>
-      <Button title="Masuk / Daftar" variant="brass" icon="login" onPress={() => router.push('/login')} style={styles.button} />
+      {/* Di atas latar sapphire tombol putih agar menonjol; di latar terang tombol biru. */}
+      <Button title="Masuk / Daftar" variant={dark ? 'light' : 'brass'} icon="login" onPress={() => router.push('/login')} style={styles.button} />
     </View>
   );
 }
