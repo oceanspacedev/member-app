@@ -59,7 +59,7 @@ export default function LoginScreen() {
             <View style={styles.brand}>
               <LogoMark size={52} />
               <Txt weight="extrabold" size={28} style={{ letterSpacing: -0.6, marginTop: 8 }} accessibilityRole="header">
-                Masuk ke Ocean Space
+                Masuk ke Space Club
               </Txt>
               <Txt size={14} color={colors.muted} style={{ lineHeight: 20 }}>
                 Kumpulkan poin dan pakai voucher member di semua outlet. Tanpa password, cukup kode dari WhatsApp.
@@ -120,7 +120,7 @@ export default function LoginScreen() {
               <Txt weight="bold" size={12} color={colors.ink} accessibilityRole="link" onPress={() => void openWebPage(legalUrls.privacy)}>
                 Kebijakan Privasi
               </Txt>{' '}
-              Ocean Space.
+              Space Club.
             </Txt>
           </View>
         </ScrollView>

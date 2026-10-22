@@ -4,7 +4,7 @@ import Svg, { Circle, G, Path, Rect } from 'react-native-svg';
 import { colors } from '@/constants/theme';
 
 /*
- * Ikon menu Beranda bergaya khas Ocean Space: duotone biru + garis navy,
+ * Ikon menu Beranda bergaya khas Space Club: duotone biru + garis navy,
  * dengan kelopak logo (lihat logo.tsx) yang muncul di tiap ikon.
  */
 

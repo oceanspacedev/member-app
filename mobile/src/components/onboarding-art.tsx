@@ -127,7 +127,7 @@ export function MemberCardArt() {
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
               <LogoGlyph size={20} />
               <Txt weight="bold" size={12} color="#FFFFFF" allowFontScaling={false}>
-                Ocean Space
+                Space Club
               </Txt>
             </View>
             <View style={styles.tier}>
@@ -138,7 +138,7 @@ export function MemberCardArt() {
           </View>
           <View style={{ gap: 5 }}>
             <Txt weight="bold" size={10} color={colors.accentOnDark} style={{ letterSpacing: 3 }} allowFontScaling={false}>
-              MEMBER CLUB
+              MEMBER CARD
             </Txt>
             <Txt weight="semibold" size={15} color="#FFFFFF" style={{ letterSpacing: 2 }} allowFontScaling={false}>
               8124 •••• 0921
@@ -216,7 +216,7 @@ export function ReceiptArt() {
           <View style={{ alignItems: 'center', gap: 5 }}>
             <LogoGlyph size={20} />
             <Txt weight="extrabold" size={9} color={colors.ink} style={{ letterSpacing: 2.5 }} allowFontScaling={false}>
-              OCEAN SPACE
+              SPACE CLUB
             </Txt>
           </View>
           <View style={styles.dash} />

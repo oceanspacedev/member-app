@@ -153,6 +153,42 @@ export function Chip({ label, active, onPress }: { label: string; active: boolea
   );
 }
 
+/** Pilihan tab sama lebar memenuhi satu baris (mis. Aktif | Riwayat). */
+export function Segmented<T extends string>({
+  options,
+  value,
+  onChange,
+  style,
+}: {
+  options: { value: T; label: string }[];
+  value: T;
+  onChange: (value: T) => void;
+  style?: StyleProp<ViewStyle>;
+}) {
+  return (
+    <View style={[styles.segmented, style]} accessibilityRole="tablist">
+      {options.map((o) => {
+        const active = o.value === value;
+        return (
+          <Pressable
+            key={o.value}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: active }}
+            onPress={() => {
+              if (!active) haptics.select();
+              onChange(o.value);
+            }}
+            style={[styles.segment, active && { backgroundColor: colors.primary }]}>
+            <Txt weight="bold" size={14} color={active ? '#FFFFFF' : colors.muted}>
+              {o.label}
+            </Txt>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
 export function Monogram({ name, color, size = 44, radius = 12 }: { name: string; color: string; size?: number; radius?: number }) {
   return (
     <View style={{ width: size, height: size, borderRadius: radius, backgroundColor: color, alignItems: 'center', justifyContent: 'center' }}>
@@ -270,6 +306,16 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     justifyContent: 'center',
   },
+  segmented: {
+    flexDirection: 'row',
+    gap: 4,
+    padding: 4,
+    borderRadius: 999,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  segment: { flex: 1, height: 40, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
   banner: {
     flexDirection: 'row',
     alignItems: 'center',

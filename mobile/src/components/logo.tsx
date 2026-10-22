@@ -18,7 +18,7 @@ function Petals() {
 /** Logo aplikasi: kelopak biru muda & putih di kotak sapphire. */
 export function LogoMark({ size = 48 }: { size?: number }) {
   return (
-    <Svg width={size} height={size} viewBox="0 0 48 48" accessibilityLabel="Logo Ocean Space">
+    <Svg width={size} height={size} viewBox="0 0 48 48" accessibilityLabel="Logo Space Club">
       <Rect width={48} height={48} rx={12} fill={colors.primary} />
       <G transform="translate(10 10) scale(0.7)">
         <Petals />
@@ -30,7 +30,7 @@ export function LogoMark({ size = 48 }: { size?: number }) {
 /** Glyph kelopak saja, tanpa latar. */
 export function LogoGlyph({ size = 40 }: { size?: number }) {
   return (
-    <Svg width={size} height={size} viewBox="0 0 40 40" accessibilityLabel="Logo Ocean Space">
+    <Svg width={size} height={size} viewBox="0 0 40 40" accessibilityLabel="Logo Space Club">
       <Petals />
     </Svg>
   );

@@ -32,14 +32,14 @@ const SLIDES: Slide[] = [
   {
     key: 'card',
     Art: MemberCardArt,
-    title: 'Satu kartu, semua brand Ocean Space',
+    title: 'Satu kartu, semua brand Space Club',
     text: 'Kuliner, fast food, retail & emas, sampai sports. Poin dari satu brand bisa dipakai di brand lain.',
   },
   {
     key: 'receipt',
     Art: ReceiptArt,
     title: 'Foto struk, poin langsung masuk',
-    text: 'Habis belanja di outlet Ocean Space? Foto struknya, kami periksa otomatis dan poin masuk ke akunmu.',
+    text: 'Habis belanja di outlet Space Club? Foto struknya, kami periksa otomatis dan poin masuk ke akunmu.',
   },
   {
     key: 'voucher',
@@ -119,7 +119,7 @@ export default function OnboardingScreen() {
         <View style={styles.brand}>
           <LogoGlyph size={24} />
           <Txt weight="extrabold" size={15} color="#FFFFFF">
-            Ocean Space
+            Space Club
           </Txt>
         </View>
         <Pressable

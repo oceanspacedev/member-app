@@ -24,7 +24,7 @@ export function AppVersion() {
   return (
     <Pressable onLongPress={__DEV__ ? () => void resetLocalDataForDev() : undefined} accessibilityRole="text">
       <Txt size={12} color={colors.subtle} style={{ textAlign: 'center' }}>
-        Ocean Space · versi {Constants.expoConfig?.version ?? '1.0.0'}
+        Space Club · versi {Constants.expoConfig?.version ?? '1.0.0'}
       </Txt>
     </Pressable>
   );

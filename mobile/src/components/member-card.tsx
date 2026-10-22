@@ -34,7 +34,7 @@ export function TierCard({ tier, status, remaining }: { tier: Tier; status: Tier
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
           <LogoGlyph size={16} />
           <Txt weight="semibold" size={11} color="#FFFFFF">
-            Ocean Space
+            Space Club
           </Txt>
         </View>
         {badge && (

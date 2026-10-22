@@ -95,7 +95,7 @@ function PromoSlide({ promo, width }: { promo: Promo; width: number }) {
   const brand = promo.is_universal ? 'Semua outlet' : (promo.brand?.name ?? '');
 
   return (
-    <Pressable accessibilityRole="button" onPress={() => router.navigate('/promo')} style={[styles.slide, { width }]}>
+    <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/promos/[id]', params: { id: String(promo.id) } })} style={[styles.slide, { width }]}>
       <View style={[styles.photo, { backgroundColor: colors.primary }]}>
         {promo.image_url && <Photo uri={promo.image_url} label={promo.title} style={StyleSheet.absoluteFill} />}
         {/* Tanpa teks besar, gambar (yang sudah berisi teks desain) tampil bersih tanpa bayangan. */}

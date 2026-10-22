@@ -44,7 +44,7 @@ export default function StrukScreen() {
           <GuestPrompt
             icon="camera"
             title="Foto struk, dapat poin"
-            text="Masuk untuk mengirim foto struk belanja dari outlet Ocean Space. Poin langsung masuk ke akunmu setelah struk diperiksa."
+            text="Masuk untuk mengirim foto struk belanja dari outlet Space Club. Poin langsung masuk ke akunmu setelah struk diperiksa."
           />
         </SafeAreaView>
       ) : (
@@ -147,7 +147,7 @@ function ReceiptForm() {
             Foto Struk
           </Txt>
           <Txt size={14} color={colors.muted} style={{ lineHeight: 20 }}>
-            Foto struk belanja dari outlet Ocean Space. Kami periksa otomatis dan poin langsung masuk.
+            Foto struk belanja dari outlet Space Club. Kami periksa otomatis dan poin langsung masuk.
           </Txt>
         </View>
 

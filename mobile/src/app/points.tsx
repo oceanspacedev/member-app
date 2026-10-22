@@ -157,7 +157,7 @@ export default function PointsScreen() {
             <EmptyState
               icon="receipt"
               title="Belum ada transaksi"
-              text="Foto struk belanjamu di outlet Ocean Space untuk mulai mengumpulkan poin."
+              text="Foto struk belanjamu di outlet Space Club untuk mulai mengumpulkan poin."
               style={{ paddingVertical: 24 }}
             />
           )
@@ -166,10 +166,10 @@ export default function PointsScreen() {
           const positive = item.points >= 0;
           return (
             <View style={[styles.row, index === 0 && styles.first, index === items.length - 1 && styles.last]}>
-              <BrandAvatar name={item.outlet?.brand ?? 'Ocean Space'} logoUrl={item.outlet?.logo_url} size={36} radius={10} />
+              <BrandAvatar name={item.outlet?.brand ?? 'Space Club'} logoUrl={item.outlet?.logo_url} size={36} radius={10} />
               <View style={{ flex: 1, gap: 2 }}>
                 <Txt weight="bold" size={13}>
-                  {item.outlet?.name ?? 'Ocean Space'}
+                  {item.outlet?.name ?? 'Space Club'}
                 </Txt>
                 <Txt size={12} color={colors.muted}>
                   {item.type === 'earn' ? `Belanja ${rupiah(item.amount)}` : item.type === 'redeem' ? `Potongan ${rupiah(item.amount)}` : item.description}

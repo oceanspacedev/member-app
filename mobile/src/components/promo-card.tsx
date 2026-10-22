@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { router } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { colors } from '@/constants/theme';
@@ -44,10 +44,8 @@ function Highlight({ promo, size = 19 }: { promo: Promo; size?: number }) {
 }
 
 export function PromoCard({ promo, onChanged }: { promo: Promo; onChanged?: () => void }) {
-  const [open, setOpen] = useState(false);
   // Satu warna untuk semua promo agar tampilan seragam; identitas brand dari nama & logonya.
   const color = colors.primary;
-  const details = [promo.description, promo.terms].filter(Boolean).join('\n\n');
 
   const body = (
     <View style={styles.body}>
@@ -67,9 +65,8 @@ export function PromoCard({ promo, onChanged }: { promo: Promo; onChanged?: () =
     <View style={styles.card}>
       <Pressable
         accessibilityRole="button"
-        accessibilityState={{ expanded: open }}
-        accessibilityHint="Tampilkan detail promo"
-        onPress={() => setOpen((v) => !v)}>
+        accessibilityHint="Buka detail promo"
+        onPress={() => router.push({ pathname: '/promos/[id]', params: { id: String(promo.id) } })}>
         {promo.image_url ? (
           <>
             <View style={styles.photo}>
@@ -94,13 +91,6 @@ export function PromoCard({ promo, onChanged }: { promo: Promo; onChanged?: () =
             {body}
           </View>
         )}
-        {open && details ? (
-          <View style={styles.details}>
-            <Txt size={13} color={colors.inkSoft} style={{ lineHeight: 20 }}>
-              {details}
-            </Txt>
-          </View>
-        ) : null}
       </Pressable>
 
       {promo.voucher && <VoucherAction promo={promo} onChanged={onChanged} />}
@@ -115,5 +105,4 @@ const styles = StyleSheet.create({
   body: { flex: 1, padding: 14, gap: 5 },
   photo: { width: '100%', aspectRatio: 16 / 9, justifyContent: 'flex-end', padding: 12 },
   highlightChip: { alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12 },
-  details: { borderTopWidth: 1, borderTopColor: colors.lineSoft, padding: 14 },
 });

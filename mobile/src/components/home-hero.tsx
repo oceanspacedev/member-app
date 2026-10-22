@@ -1,6 +1,15 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, useWindowDimensions, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
+import {
+  Animated,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  useWindowDimensions,
+  View,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+} from 'react-native';
 import { useReducedMotion } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
@@ -15,34 +24,79 @@ import { Txt } from './ui';
 
 const INTERVAL_MS = 5000;
 const RESUME_AFTER_MS = 7000;
-/** Tinggi banner di bawah navbar; kartu ringkasan menumpang 28px di tepi bawahnya. */
+/** Tinggi bagian desain banner (di bawah navbar); kartu ringkasan menumpang 28px di tepi bawahnya. */
 export const HERO_HEIGHT = 216;
+/** Tinggi isi navbar tanpa status bar: 8 + kolom cari 44 + 10. */
+export const NAVBAR_HEIGHT = 62;
+/** Jarak gulir sampai navbar berubah penuh menjadi putih. */
+export const NAV_SOLID_AT = 90;
 
 /**
- * Navbar putih di puncak Beranda: diletakkan di luar ScrollView sehingga tetap terlihat saat digulir.
- * Kolom cari + tombol kartu member; tidak menumpang di atas foto agar warnanya tidak bertabrakan.
+ * Navbar Beranda yang menumpang di atas banner (gaya J&T): transparan dengan kolom cari "kaca" saat di
+ * puncak, lalu memudar menjadi putih solid saat digulir. Hanya opacity yang dianimasikan (native driver).
  */
-export function HomeNavbar({ onSearch, onMemberCard }: { onSearch: () => void; onMemberCard: () => void }) {
+export function HomeNavbar({ onSearch, onMemberCard, scrollY }: { onSearch: () => void; onMemberCard: () => void; scrollY: Animated.Value }) {
   const insets = useSafeAreaInsets();
+  const solid = scrollY.interpolate({ inputRange: [0, NAV_SOLID_AT], outputRange: [0, 1], extrapolate: 'clamp' });
+  const clear = scrollY.interpolate({ inputRange: [0, NAV_SOLID_AT], outputRange: [1, 0], extrapolate: 'clamp' });
+
   return (
     <View style={[styles.navbar, { paddingTop: insets.top + 8 }]}>
+      <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.navbarSolid, { opacity: solid }]} />
+
       <Pressable
         accessibilityRole="search"
         accessibilityLabel="Cari outlet, brand, atau kota"
         onPress={onSearch}
-        style={({ pressed }) => [styles.search, pressed && { opacity: 0.8 }]}>
-        <Icon name="search" size={20} color={colors.muted} strokeWidth={2} />
-        <Txt size={14} color={colors.subtle} numberOfLines={1} style={{ flex: 1 }}>
-          Cari outlet, brand, atau kota
-        </Txt>
+        style={({ pressed }) => [styles.search, pressed && { opacity: 0.85 }]}>
+        <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.glass, { opacity: clear }]} />
+        <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.searchSolid, { opacity: solid }]} />
+        <Animated.View pointerEvents="none" style={[styles.searchRow, { opacity: clear }]}>
+          <Icon name="search" size={20} color="#FFFFFF" strokeWidth={2} />
+          <Txt size={14} color="rgba(255,255,255,0.92)" numberOfLines={1} style={{ flex: 1 }}>
+            Cari outlet, brand, atau kota
+          </Txt>
+        </Animated.View>
+        <Animated.View pointerEvents="none" style={[styles.searchRow, { opacity: solid }]}>
+          <Icon name="search" size={20} color={colors.muted} strokeWidth={2} />
+          <Txt size={14} color={colors.subtle} numberOfLines={1} style={{ flex: 1 }}>
+            Cari outlet, brand, atau kota
+          </Txt>
+        </Animated.View>
       </Pressable>
+
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Tampilkan kartu member"
         onPress={onMemberCard}
-        style={({ pressed }) => [styles.square, pressed && { opacity: 0.8 }]}>
-        <Icon name="qr" size={22} color={colors.primary} strokeWidth={1.9} />
+        style={({ pressed }) => [styles.square, pressed && { opacity: 0.85 }]}>
+        <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.glass, { opacity: clear }]} />
+        <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.squareSolid, { opacity: solid }]} />
+        <Animated.View pointerEvents="none" style={[styles.center, { opacity: clear }]}>
+          <Icon name="qr" size={22} color="#FFFFFF" strokeWidth={1.9} />
+        </Animated.View>
+        <Animated.View pointerEvents="none" style={[styles.center, { opacity: solid }]}>
+          <Icon name="qr" size={22} color={colors.primary} strokeWidth={1.9} />
+        </Animated.View>
       </Pressable>
+    </View>
+  );
+}
+
+/** Bayangan gelap tipis di bawah status bar & navbar transparan agar teks putihnya selalu terbaca. */
+function TopShade({ height }: { height: number }) {
+  const id = `top${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
+  return (
+    <View style={{ position: 'absolute', top: 0, left: 0, right: 0, height }} pointerEvents="none">
+      <Svg width="100%" height="100%" viewBox="0 0 1 1" preserveAspectRatio="none">
+        <Defs>
+          <LinearGradient id={id} x1="0" y1="0" x2="0" y2="1">
+            <Stop offset="0" stopColor="#000000" stopOpacity={0.38} />
+            <Stop offset="1" stopColor="#000000" stopOpacity={0} />
+          </LinearGradient>
+        </Defs>
+        <Rect width="1" height="1" fill={`url(#${id})`} />
+      </Svg>
     </View>
   );
 }
@@ -91,12 +145,13 @@ function PhotoShade() {
 type Slide = { key: string; promo?: Promo };
 
 /**
- * Banner promo selebar layar tepat di bawah navbar: bergeser sendiri (foto promo, atau gradasi biru
- * bila promo tanpa foto).
+ * Banner promo penuh sampai ke belakang status bar & navbar (`topInset`), bergeser sendiri. Desain 16:9
+ * mengisi seluruh area (cover), jadi sisi kiri-kanannya sedikit terpotong — teks penting desain sebaiknya
+ * di bagian tengah.
  */
-export function HomeHero({ promos }: { promos: Promo[] }) {
+export function HomeHero({ promos, topInset = 0 }: { promos: Promo[]; topInset?: number }) {
   const { width } = useWindowDimensions();
-  const height = HERO_HEIGHT;
+  const height = topInset + HERO_HEIGHT;
   const reduceMotion = useReducedMotion();
 
   // Tanpa promo: satu slide sambutan merek.
@@ -153,7 +208,7 @@ export function HomeHero({ promos }: { promos: Promo[] }) {
         onScrollBeginDrag={pause}
         onTouchStart={pause}>
         {slides.map((s) => (
-          <HeroSlide key={s.key} promo={s.promo} width={width} height={height} />
+          <HeroSlide key={s.key} promo={s.promo} width={width} height={height} topInset={topInset} />
         ))}
       </ScrollView>
 
@@ -168,9 +223,9 @@ export function HomeHero({ promos }: { promos: Promo[] }) {
   );
 }
 
-function HeroSlide({ promo, width, height }: { promo?: Promo; width: number; height: number }) {
-  // Ruang bawah dikosongkan untuk titik penanda & kartu ringkasan yang menumpang.
-  const content = { paddingTop: 20, paddingBottom: 52 };
+function HeroSlide({ promo, width, height, topInset }: { promo?: Promo; width: number; height: number; topInset: number }) {
+  // Atas: ruang navbar. Bawah: ruang titik penanda & kartu ringkasan yang menumpang.
+  const content = { paddingTop: topInset + 20, paddingBottom: 52 };
 
   if (!promo) {
     return (
@@ -178,9 +233,10 @@ function HeroSlide({ promo, width, height }: { promo?: Promo; width: number; hei
         <View style={styles.watermark} pointerEvents="none">
           <LogoGlyph size={220} />
         </View>
+        {topInset > 0 && <TopShade height={topInset + 24} />}
         <View style={styles.copy}>
           <Txt weight="bold" size={12} color={colors.accentOnDark} style={{ letterSpacing: 2 }}>
-            OCEAN SPACE MEMBER CLUB
+            SPACE CLUB
           </Txt>
           <Txt weight="extrabold" size={26} color="#FFFFFF" style={{ letterSpacing: -0.5, lineHeight: 32 }}>
             Satu kartu,{'\n'}semua brand grup
@@ -195,14 +251,15 @@ function HeroSlide({ promo, width, height }: { promo?: Promo; width: number; hei
 
   const where = promo.is_universal ? 'Semua outlet' : (promo.brand?.name ?? '');
   const label = promo.highlight ? `${promo.highlight} ${promo.highlight_caption ?? ''}, ${promo.title}` : promo.title;
-  const openPromo = () => router.navigate({ pathname: '/promo', params: { jenis: '' } });
+  const openPromo = () => router.push({ pathname: '/promos/[id]', params: { id: String(promo.id) } });
 
   // Teks besar dikosongkan admin = desain gambar sudah berisi teks: tampilkan gambarnya saja, tanpa
   // bayangan dan tanpa teks tambahan.
   if (promo.image_url && !promo.highlight) {
     return (
       <Pressable accessibilityRole="button" accessibilityLabel={`${label}. Buka promo.`} onPress={openPromo} style={{ width, height }}>
-        <Photo uri={promo.image_url} label={promo.title} tint="transparent" style={StyleSheet.absoluteFill} />
+        <Photo uri={promo.image_url} label={promo.title} tint={colors.primaryDark} style={StyleSheet.absoluteFill} />
+        {topInset > 0 && <TopShade height={topInset + 24} />}
       </Pressable>
     );
   }
@@ -215,7 +272,7 @@ function HeroSlide({ promo, width, height }: { promo?: Promo; width: number; hei
       style={[styles.slide, content, { width, height }]}>
       {promo.image_url ? (
         <>
-          <Photo uri={promo.image_url} label={promo.title} tint="transparent" style={StyleSheet.absoluteFill} />
+          <Photo uri={promo.image_url} label={promo.title} tint={colors.primaryDark} style={StyleSheet.absoluteFill} />
           <PhotoShade />
         </>
       ) : (
@@ -223,6 +280,7 @@ function HeroSlide({ promo, width, height }: { promo?: Promo; width: number; hei
           <LogoGlyph size={220} />
         </View>
       )}
+      {topInset > 0 && <TopShade height={topInset + 24} />}
       <View style={styles.copy}>
         <Txt weight="semibold" size={12} color="rgba(255,255,255,0.92)" numberOfLines={1} style={styles.textShadow}>
           {where}
@@ -254,36 +312,26 @@ const styles = StyleSheet.create({
   textShadow: { textShadowColor: 'rgba(0,0,0,0.35)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 8 },
   watermark: { position: 'absolute', right: -50, bottom: -40, opacity: 0.12 },
   navbar: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
     paddingHorizontal: 16,
     paddingBottom: 10,
-    backgroundColor: colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.lineSoft,
-    zIndex: 2,
+    zIndex: 10,
   },
-  search: {
-    flex: 1,
-    height: 44,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingHorizontal: 14,
-    borderRadius: 12,
-    backgroundColor: colors.ground,
-    borderWidth: 1,
-    borderColor: colors.line,
-  },
-  square: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: colors.primarySoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  navbarSolid: { backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.lineSoft },
+  // Kolom & tombol "kaca" di atas banner.
+  glass: { backgroundColor: 'rgba(15, 23, 42, 0.32)', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.3)', borderRadius: 12 },
+  search: { flex: 1, height: 44, borderRadius: 12, overflow: 'hidden' },
+  searchSolid: { backgroundColor: colors.ground, borderWidth: 1, borderColor: colors.line, borderRadius: 12 },
+  searchRow: { ...StyleSheet.absoluteFill, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14 },
+  square: { width: 44, height: 44, borderRadius: 12, overflow: 'hidden' },
+  squareSolid: { backgroundColor: colors.primarySoft, borderRadius: 12 },
+  center: { ...StyleSheet.absoluteFill, alignItems: 'center', justifyContent: 'center' },
   dots: { position: 'absolute', bottom: 40, left: 20, flexDirection: 'row', gap: 6 },
   dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.45)' },
   dotActive: { width: 18, backgroundColor: '#FFFFFF' },

@@ -6,7 +6,7 @@ import { colors, tierColors } from '@/constants/theme';
 
 /*
  * Ilustrasi kecil untuk Beranda (kartu aksi & ringkasan level), sekeluarga dengan ikon menu:
- * duotone biru + garis navy, dengan kelopak logo Ocean Space sebagai stempel.
+ * duotone biru + garis navy, dengan kelopak logo Space Club sebagai stempel.
  */
 
 const PETAL = 'M18.5 18.5H9.25A9.25 9.25 0 0 1 0 9.25A9.25 9.25 0 0 1 9.25 0A9.25 9.25 0 0 1 18.5 9.25Z';

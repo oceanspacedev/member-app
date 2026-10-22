@@ -24,6 +24,6 @@ export function openWebPage(url: string) {
 }
 
 /** Buka percakapan WhatsApp dengan layanan pelanggan, dengan pesan pembuka yang sudah terisi. */
-export function openSupport(message = 'Halo Ocean Space, saya butuh bantuan dengan aplikasi member.') {
+export function openSupport(message = 'Halo Space Club, saya butuh bantuan dengan aplikasi member.') {
   return Linking.openURL(`https://wa.me/${SUPPORT_WHATSAPP}?text=${encodeURIComponent(message)}`);
 }

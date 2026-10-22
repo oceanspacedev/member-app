@@ -1,10 +1,11 @@
 import { router, useIsFocused, type Href } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useState, type ReactNode } from 'react';
-import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { Animated, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ReceiptArt, RewardArt, TierMedal } from '@/components/home-art';
-import { BlueGradient, HomeHero, HomeNavbar } from '@/components/home-hero';
+import { BlueGradient, HomeHero, HomeNavbar, NAV_SOLID_AT, NAVBAR_HEIGHT } from '@/components/home-hero';
 import { Icon } from '@/components/icon';
 import { LocationPrompt } from '@/components/location-prompt';
 import { MemberQrSheet } from '@/components/member-qr-sheet';
@@ -32,6 +33,18 @@ export default function HomeScreen() {
   const outlets = useApi<{ data: Outlet[] }>('/outlets', { lat: location.coords?.lat, lng: location.coords?.lng });
   const [refreshing, setRefreshing] = useState(false);
   const [cardOpen, setCardOpen] = useState(false);
+  const insets = useSafeAreaInsets();
+  // Posisi gulir → navbar transparan memudar jadi putih; status bar ikut gelap saat navbar putih.
+  const [scrollY] = useState(() => new Animated.Value(0));
+  const [solidNav, setSolidNav] = useState(false);
+  const onScroll = Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
+    useNativeDriver: true,
+    listener: (e: { nativeEvent: { contentOffset: { y: number } } }) => {
+      const solid = e.nativeEvent.contentOffset.y > NAV_SOLID_AT * 0.6;
+      setSolidNav((prev) => (prev === solid ? prev : solid));
+    },
+  });
+  const navHeight = insets.top + NAVBAR_HEIGHT;
 
   async function onRefresh() {
     setRefreshing(true);
@@ -67,19 +80,17 @@ export default function HomeScreen() {
 
   return (
     <View style={{ flex: 1 }}>
-      {/* Navbar putih di puncak: teks status bar gelap selama Beranda tampil. */}
-      {focused && <StatusBar style="dark" />}
+      {/* Di atas banner teks status bar putih; setelah navbar berubah putih, teksnya gelap. */}
+      {focused && <StatusBar style={solidNav ? 'dark' : 'light'} />}
 
-      {/* Di luar ScrollView: navbar tetap terlihat saat Beranda digulir. */}
-      <HomeNavbar
-        onSearch={() => router.navigate({ pathname: '/outlets', params: { cari: String(Date.now()) } })}
-        onMemberCard={memberOnly(() => setCardOpen(true))}
-      />
-
-      <ScrollView
+      <Animated.ScrollView
+        onScroll={onScroll}
+        scrollEventThrottle={16}
         contentContainerStyle={{ paddingBottom: 40 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}>
-        <HomeHero promos={heroPromos} />
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} progressViewOffset={navHeight} />
+        }>
+        <HomeHero promos={heroPromos} topInset={navHeight} />
 
         {/* Ringkasan poin & voucher, menumpang di tepi bawah banner. */}
         <View style={styles.summary}>
@@ -190,7 +201,7 @@ export default function HomeScreen() {
                 <Pressable
                   key={p.id}
                   accessibilityRole="button"
-                  onPress={() => router.navigate({ pathname: '/promo', params: { jenis: 'poin' } })}
+                  onPress={() => router.push({ pathname: '/promos/[id]', params: { id: String(p.id) } })}
                   style={({ pressed }) => [styles.reward, pressed && { opacity: 0.85 }]}>
                   <View style={styles.rewardTop}>
                     <BlueGradient />
@@ -239,7 +250,14 @@ export default function HomeScreen() {
             Belanja 12 bulan terakhir {rupiah(loyalty.annual_spend)} · cashback {loyalty.cashback_percent}%
           </Txt>
         )}
-      </ScrollView>
+      </Animated.ScrollView>
+
+      {/* Menumpang di atas banner; tetap terlihat (jadi putih) saat Beranda digulir. */}
+      <HomeNavbar
+        scrollY={scrollY}
+        onSearch={() => router.navigate({ pathname: '/outlets', params: { cari: String(Date.now()) } })}
+        onMemberCard={memberOnly(() => setCardOpen(true))}
+      />
 
       <MemberQrSheet visible={cardOpen} onClose={() => setCardOpen(false)} />
     </View>

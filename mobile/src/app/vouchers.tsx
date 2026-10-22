@@ -1,11 +1,11 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { FlatList, RefreshControl, View } from 'react-native';
+import { FlatList, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { VoucherListSkeleton } from '@/components/skeleton';
 import { EmptyState, ErrorState } from '@/components/state';
-import { Chip, ScreenHeader } from '@/components/ui';
+import { ScreenHeader, Segmented } from '@/components/ui';
 import { VoucherCard } from '@/components/voucher-card';
 import { colors } from '@/constants/theme';
 import type { Voucher } from '@/lib/types';
@@ -23,10 +23,15 @@ export default function VouchersScreen() {
   return (
     <SafeAreaView style={{ flex: 1 }} edges={['top']}>
       <ScreenHeader title="Voucher Saya" />
-      <View style={{ flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingBottom: 12 }}>
-        <Chip label="Aktif" active={tab === 'active'} onPress={() => setTab('active')} />
-        <Chip label="Riwayat" active={tab === 'history'} onPress={() => setTab('history')} />
-      </View>
+      <Segmented
+        options={[
+          { value: 'active', label: 'Aktif' },
+          { value: 'history', label: 'Riwayat' },
+        ]}
+        value={tab}
+        onChange={setTab}
+        style={{ marginHorizontal: 16, marginBottom: 12 }}
+      />
 
       {error && !data ? (
         <ErrorState message={error} onRetry={reload} />

@@ -85,7 +85,7 @@ export function AppIntro({ ready, onDone }: { ready: boolean; onDone: () => void
   const barStyle = useAnimatedStyle(() => ({ width: `${bar.get() * 100}%` }));
 
   return (
-    <Animated.View style={[StyleSheet.absoluteFill, styles.overlay, overlayStyle]} accessible accessibilityLabel="Memuat Ocean Space">
+    <Animated.View style={[StyleSheet.absoluteFill, styles.overlay, overlayStyle]} accessible accessibilityLabel="Memuat Space Club">
       <StatusBar style="light" />
       <Animated.View style={[styles.logo, { left: width / 2 - LOGO / 2, top: height / 2 - LOGO / 2 }, logoStyle]}>
         {PLACES.map((place, i) => (
@@ -95,10 +95,10 @@ export function AppIntro({ ready, onDone }: { ready: boolean; onDone: () => void
 
       <Animated.View style={[styles.text, { top: height / 2 + 22 }, textStyle]}>
         <Txt weight="extrabold" size={26} color="#FFFFFF" style={{ letterSpacing: -0.4 }}>
-          Ocean Space
+          Space Club
         </Txt>
         <Txt weight="bold" size={11} color={colors.accentOnDark} style={{ letterSpacing: 3.5 }}>
-          MEMBER CLUB
+          SATU KARTU · SEMUA BRAND
         </Txt>
         <View style={styles.track}>
           <Animated.View style={[styles.fill, barStyle]} />

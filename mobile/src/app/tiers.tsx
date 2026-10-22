@@ -20,7 +20,7 @@ export default function TiersScreen() {
   const currentIndex = tiers.findIndex((t) => t.key === loyalty?.tier);
 
   const how: [IconName, string][] = [
-    ['receipt', 'Foto struk setiap belanja di outlet Ocean Space. Struk diperiksa otomatis dan poin langsung masuk sesuai cashback level kamu.'],
+    ['receipt', 'Foto struk setiap belanja di outlet Space Club. Struk diperiksa otomatis dan poin langsung masuk sesuai cashback level kamu.'],
     ['coins', `1 poin = ${rupiah(data?.point_value ?? 10)}. Tukar di kasir atau dengan voucher di semua brand grup.`],
     ['crown', 'Level dihitung dari total belanja 12 bulan terakhir dan naik otomatis.'],
   ];

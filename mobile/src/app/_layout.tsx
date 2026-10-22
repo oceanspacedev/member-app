@@ -80,6 +80,7 @@ function RootNavigator({ fontsLoaded }: { fontsLoaded: boolean }) {
       <Stack.Protected guard={member || guest}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="outlet/[id]" />
+        <Stack.Screen name="promos/[id]" />
         <Stack.Screen name="brands" />
         <Stack.Screen name="tiers" />
       </Stack.Protected>

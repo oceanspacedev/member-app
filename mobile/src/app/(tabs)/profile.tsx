@@ -50,7 +50,7 @@ function GuestProfile() {
             dark
             icon="user"
             title="Kamu masuk sebagai tamu"
-            text="Masuk dengan nomor WhatsApp untuk kumpulkan poin dari struk belanja dan simpan voucher di semua brand Ocean Space."
+            text="Masuk dengan nomor WhatsApp untuk kumpulkan poin dari struk belanja dan simpan voucher di semua brand Space Club."
           />
         </View>
         <View style={styles.body}>

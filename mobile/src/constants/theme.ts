@@ -1,5 +1,5 @@
 /**
- * Token visual Ocean Space — palet "biru sapphire": latar putih kebiruan, permukaan utama
+ * Token visual Space Club — palet "biru sapphire": latar putih kebiruan, permukaan utama
  * (header, kartu gelap) biru sapphire, aksi & sorotan biru terang.
  * `primary` = sapphire merek, `accent` = biru aksi (teks putih di atasnya),
  * `accentOnDark` = aksen di atas latar sapphire/gelap, `success`/`danger` = makna.
