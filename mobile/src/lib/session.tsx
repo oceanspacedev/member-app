@@ -6,7 +6,7 @@ import { getItem, setItem } from './storage';
 import type { Loyalty, User } from './types';
 
 const TOKEN_KEY = 'lc.token';
-// Dipilih lewat "Masuk sebagai tamu": aplikasi langsung dibuka tanpa login sampai tamu memilih masuk.
+// Dipilih lewat "Jelajahi dulu sebagai tamu": aplikasi langsung dibuka tanpa login sampai tamu memilih masuk.
 const GUEST_KEY = 'lc.guest';
 // Data akun terakhir, agar aplikasi tetap terbuka saat dibuka tanpa internet.
 const ME_KEY = 'lc.me';

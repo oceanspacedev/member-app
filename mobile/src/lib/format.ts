@@ -35,11 +35,14 @@ export function longDate(ymd: string): string {
   return `${d} ${MONTHS_LONG[m - 1]} ${y}`;
 }
 
-/** "6281244710921" → "+62 812-4471-0921" */
+/**
+ * "6281244710921" → "+62 812 4471 0921": dikelompokkan sama seperti kolom input di layar login.
+ * Spasinya non-breaking agar nomor tidak terpotong ke baris berikutnya.
+ */
 export function phone(p: string | null): string {
   if (!p) return '-';
   const local = p.startsWith('62') ? p.slice(2) : p;
-  return `+62 ${local.replace(/(\d{3})(\d{4})(\d+)/, '$1-$2-$3')}`;
+  return `+62 ${local.replace(/(\d{3})(\d{4})(\d+)/, '$1 $2 $3')}`;
 }
 
 export function initials(name: string | null | undefined): string {

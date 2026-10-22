@@ -59,10 +59,11 @@ export default function LoginScreen() {
             <View style={styles.brand}>
               <LogoMark size={52} />
               <Txt weight="extrabold" size={28} style={{ letterSpacing: -0.6, marginTop: 8 }} accessibilityRole="header">
-                Masuk ke Space Club
+                Masuk atau daftar
               </Txt>
+              {/* Tidak ada layar daftar terpisah: nomor baru otomatis jadi member setelah OTP terverifikasi. */}
               <Txt size={14} color={colors.muted} style={{ lineHeight: 20 }}>
-                Kumpulkan poin dan pakai voucher member di semua outlet. Tanpa password, cukup kode dari WhatsApp.
+                Cukup nomor WhatsApp, tanpa password. Belum jadi member? Nomor baru otomatis terdaftar.
               </Txt>
             </View>
 
@@ -74,6 +75,7 @@ export default function LoginScreen() {
               keyboardType="phone-pad"
               autoComplete="tel"
               textContentType="telephoneNumber"
+              autoFocus
               value={phone}
               onChangeText={(text) => {
                 setPhone(formatLocalPhone(text));
@@ -84,8 +86,9 @@ export default function LoginScreen() {
               hint={
                 <View style={styles.hint}>
                   <WhatsAppLogo size={14} />
+                  {/* Jelaskan kenapa tombol kirim belum aktif selama nomor belum cukup panjang. */}
                   <Txt size={12} color={colors.muted}>
-                    Kode OTP akan dikirim ke WhatsApp nomor ini.
+                    {digits.length > 0 && digits.length < 9 ? 'Masukkan minimal 9 digit nomor.' : 'Kode OTP akan dikirim ke WhatsApp nomor ini.'}
                   </Txt>
                 </View>
               }
@@ -107,7 +110,7 @@ export default function LoginScreen() {
               hitSlop={8}
               style={({ pressed }) => [styles.guest, pressed && { opacity: 0.6 }]}>
               <Txt weight="bold" size={15} color={colors.ink}>
-                {guest ? 'Nanti saja, lanjut jelajahi' : 'Masuk sebagai tamu'}
+                {guest ? 'Nanti saja, lanjut jelajahi' : 'Jelajahi dulu sebagai tamu'}
               </Txt>
             </Pressable>
 
