@@ -48,7 +48,7 @@ export function OfflineBanner() {
       accessibilityLiveRegion="polite"
       style={[styles.wrap, { top: insets.top + 6 }]}>
       <View style={[styles.pill, restored && styles.pillRestored]}>
-        <Icon name={restored ? 'check' : 'wifiOff'} size={15} color={restored ? '#5CD39A' : '#F28B6B'} strokeWidth={2.4} />
+        <Icon name={restored ? 'check' : 'wifiOff'} size={15} color="#FFFFFF" strokeWidth={2.4} />
         <Txt weight="bold" size={12} color="#FFFFFF">
           {restored ? 'Kembali online' : 'Tidak ada koneksi internet'}
         </Txt>
@@ -66,8 +66,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     height: 32,
     borderRadius: 16,
-    backgroundColor: colors.primary,
+    // Merah saat offline, hijau saat pulih: warnanya sendiri sudah memberi tahu keadaannya.
+    backgroundColor: colors.danger,
     boxShadow: '0 4px 14px rgba(0, 0, 0, 0.25)',
   },
-  pillRestored: { backgroundColor: colors.primaryDark },
+  pillRestored: { backgroundColor: colors.success },
 });
