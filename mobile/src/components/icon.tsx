@@ -46,6 +46,8 @@ const paths = {
   scan: <Path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M4 12h16" />,
   refresh: <Path d="M21 12a9 9 0 1 1-3-6.7L21 8M21 3v5h-5" />,
   check: <Path d="M20 6 9 17l-5-5" />,
+  close: <Path d="M18 6 6 18M6 6l12 12" />,
+  flash: <Path d="M13 2 4 14h7l-1 8 9-12h-7z" />,
   info: (
     <>
       <Circle cx={12} cy={12} r={9} />

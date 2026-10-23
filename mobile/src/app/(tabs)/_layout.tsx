@@ -42,6 +42,8 @@ export default function TabsLayout() {
         }}
         options={{
           title: 'Foto Struk',
+          // Kamera tampil penuh satu layar; tombol tutup di layar itu membawa kembali ke Beranda.
+          ...(status === 'guest' ? null : { tabBarStyle: { display: 'none' } }),
           tabBarLabel: () => null,
           tabBarAccessibilityLabel: 'Foto struk untuk dapat poin',
           tabBarIcon: ({ focused }) => (
