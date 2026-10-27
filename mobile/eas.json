@@ -12,10 +12,40 @@
       "distribution": "internal"
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "distribution": "store",
+      "environment": "production",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://member.oceanspace.co.id/api/v1",
+        "EXPO_PUBLIC_WEB_URL": "https://member.oceanspace.co.id",
+        "EXPO_PUBLIC_SUPPORT_WHATSAPP": "628981259592"
+      },
+      "android": {
+        "buildType": "app-bundle"
+      }
+    },
+    "screenshots": {
+      "extends": "production",
+      "distribution": "internal",
+      "autoIncrement": false,
+      "android": {
+        "buildType": "apk"
+      },
+      "ios": {
+        "simulator": true
+      }
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "android": {
+        "track": "internal",
+        "releaseStatus": "draft"
+      },
+      "ios": {
+        "ascAppId": "6823070543",
+        "appleTeamId": "DS2X39HFZF"
+      }
+    }
   }
 }
