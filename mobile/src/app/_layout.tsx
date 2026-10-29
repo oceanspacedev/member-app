@@ -13,6 +13,7 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { AppIntro } from '@/components/app-intro';
 import { OfflineBanner } from '@/components/offline-banner';
+import { ReceiptWatcher } from '@/components/receipt-watcher';
 import { ToastProvider } from '@/components/toast';
 import { colors } from '@/constants/theme';
 import { IntroProvider } from '@/lib/intro';
@@ -45,6 +46,7 @@ export default function RootLayout() {
           <StatusBar style="auto" />
           <RootNavigator fontsLoaded={fontsLoaded} />
           <OfflineBanner />
+          <ReceiptWatcher />
         </IntroProvider>
         {fontsLoaded && !introDone && <Intro onDone={finishIntro} />}
       </ToastProvider>

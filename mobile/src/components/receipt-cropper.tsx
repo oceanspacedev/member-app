@@ -20,21 +20,33 @@ const HANDLE = 48;
 const MIN_PX = 56;
 const DIM = 'rgba(5, 7, 15, 0.62)';
 
+// Sisi terpanjang foto yang dikirim. Sama dengan yang dibaca pemeriksa di server, jadi tidak ada detail
+// yang hilang, tetapi file jauh lebih kecil (foto kamera 3–4 MB jadi ±0,5 MB) sehingga cepat terkirim.
+const MAX_EDGE = 1800;
+
+export function isFullCrop(crop: CropRect) {
+  return crop.x <= 0.01 && crop.y <= 0.01 && crop.width >= 0.98 && crop.height >= 0.98;
+}
+
 /**
- * Potong foto sesuai pilihan member. Mengembalikan URI foto baru (JPEG), atau URI asli bila
- * potongannya praktis seluruh foto (tidak perlu dikompres ulang).
+ * Potong foto sesuai pilihan member lalu perkecil ke MAX_EDGE. Mengembalikan URI foto baru (JPEG), atau URI
+ * asli bila tidak ada yang perlu diubah.
  */
 export async function cropPhoto(uri: string, crop: CropRect): Promise<string> {
-  if (crop.x <= 0.01 && crop.y <= 0.01 && crop.width >= 0.98 && crop.height >= 0.98) return uri;
-
+  const full = isFullCrop(crop);
   const source = await ImageManipulator.manipulate(uri).renderAsync();
-  const originX = Math.round(crop.x * source.width);
-  const originY = Math.round(crop.y * source.height);
-  const width = Math.max(1, Math.min(source.width - originX, Math.round(crop.width * source.width)));
-  const height = Math.max(1, Math.min(source.height - originY, Math.round(crop.height * source.height)));
+  const originX = full ? 0 : Math.round(crop.x * source.width);
+  const originY = full ? 0 : Math.round(crop.y * source.height);
+  const width = full ? source.width : Math.max(1, Math.min(source.width - originX, Math.round(crop.width * source.width)));
+  const height = full ? source.height : Math.max(1, Math.min(source.height - originY, Math.round(crop.height * source.height)));
+  const large = Math.max(width, height) > MAX_EDGE;
+  if (full && !large) return uri;
 
-  const image = await ImageManipulator.manipulate(source).crop({ originX, originY, width, height }).renderAsync();
-  const saved = await image.saveAsync({ compress: 0.9, format: SaveFormat.JPEG });
+  let context = ImageManipulator.manipulate(source);
+  if (!full) context = context.crop({ originX, originY, width, height });
+  if (large) context = context.resize(width >= height ? { width: MAX_EDGE } : { height: MAX_EDGE });
+  const image = await context.renderAsync();
+  const saved = await image.saveAsync({ compress: 0.85, format: SaveFormat.JPEG });
   return saved.uri;
 }
 

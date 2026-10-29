@@ -11,12 +11,13 @@ import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { GuestPrompt } from '@/components/guest-prompt';
 import { Icon, type IconName } from '@/components/icon';
 import { MemberQrSheet } from '@/components/member-qr-sheet';
-import { cropPhoto, FULL_CROP, ReceiptCropper, type CropRect } from '@/components/receipt-cropper';
+import { cropPhoto, FULL_CROP, isFullCrop, ReceiptCropper, type CropRect } from '@/components/receipt-cropper';
 import { Banner, Button, Txt } from '@/components/ui';
 import { colors } from '@/constants/theme';
-import { api, ApiError, upload } from '@/lib/api';
+import { ApiError, upload } from '@/lib/api';
 import { number, rupiah } from '@/lib/format';
 import { haptics } from '@/lib/haptics';
+import { receiptWatch, useTrackedReceipt } from '@/lib/receipt-watch';
 import { useSession } from '@/lib/session';
 import type { ReceiptClaim } from '@/lib/types';
 
@@ -24,13 +25,8 @@ import type { ReceiptClaim } from '@/lib/types';
 const QUALITY = 0.8;
 const PICKER_OPTIONS: ImagePicker.ImagePickerOptions = { mediaTypes: ['images'], quality: QUALITY };
 
-// Selama sistem membaca struk, aplikasi mengecek hasil secara berkala. Setelah batas ini member
-// tidak perlu menunggu di layar: hasilnya dikirim lewat WhatsApp.
-const POLL_MS = 2500;
-const MAX_WAIT_MS = 75_000;
-
 /** Foto struk beserta potongannya (awal: area bingkai kamera, lalu bisa diatur member). */
-type Photo = { uri: string; name: string; type: string; crop: CropRect };
+type Photo = { uri: string; name: string; type: string; crop: CropRect; source: 'camera' | 'library' };
 
 type Box = { x: number; y: number; width: number; height: number };
 
@@ -85,55 +81,27 @@ export default function StrukScreen() {
 }
 
 function ReceiptCapture({ focused }: { focused: boolean }) {
-  const { refresh } = useSession();
   const [photo, setPhoto] = useState<Photo | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [claim, setClaim] = useState<ReceiptClaim | null>(null);
+  // Hasil pemeriksaan dipantau ReceiptWatcher, jadi tetap berjalan walau member meninggalkan layar ini.
+  const [claimId, setClaimId] = useState<number | null>(null);
+  const claim = useTrackedReceipt(claimId);
 
-  const claimId = claim?.id;
-  const checking = !!claim?.checking;
-
-  // Tunggu hasil pemeriksaan sistem.
+  // Selama hasilnya tampil di sini, kabar lewat toast tidak perlu.
   useEffect(() => {
-    if (!claimId || !checking) return;
-    const started = Date.now();
-    let stopped = false;
-    let timer: ReturnType<typeof setTimeout>;
-
-    const poll = async () => {
-      try {
-        const res = await api<{ data: ReceiptClaim }>(`/me/receipts/${claimId}`);
-        if (stopped) return;
-        if (!res.data.checking) {
-          setClaim(res.data);
-          if (res.data.status === 'approved') void refresh().catch(() => undefined);
-          return;
-        }
-      } catch {
-        // Sinyal putus sesaat: coba lagi di putaran berikutnya.
-      }
-      if (stopped) return;
-      if (Date.now() - started > MAX_WAIT_MS) {
-        setClaim((c) => (c ? { ...c, checking: false, in_review: true } : c));
-        return;
-      }
-      timer = setTimeout(poll, POLL_MS);
-    };
-    timer = setTimeout(poll, POLL_MS);
-
-    return () => {
-      stopped = true;
-      clearTimeout(timer);
-    };
-  }, [claimId, checking, refresh]);
+    receiptWatch.setOnScreen(focused ? claimId : null);
+    return () => receiptWatch.setOnScreen(null);
+  }, [focused, claimId]);
 
   async function pickFromLibrary() {
     setError(null);
     try {
       const result = await ImagePicker.launchImageLibraryAsync(PICKER_OPTIONS);
       const asset = result.canceled ? null : result.assets?.[0];
-      if (asset) setPhoto({ uri: asset.uri, name: asset.fileName ?? 'struk.jpg', type: asset.mimeType ?? 'image/jpeg', crop: FULL_CROP });
+      if (asset) {
+        setPhoto({ uri: asset.uri, name: asset.fileName ?? 'struk.jpg', type: asset.mimeType ?? 'image/jpeg', crop: FULL_CROP, source: 'library' });
+      }
     } catch {
       setError('Galeri tidak bisa dibuka. Coba lagi.');
     }
@@ -144,11 +112,15 @@ function ReceiptCapture({ focused }: { focused: boolean }) {
     setBusy(true);
     setError(null);
     try {
-      // Kirim hanya bagian nota. Bila pemotongan gagal, foto utuh tetap bisa dibaca sistem.
-      const cropped = await cropPhoto(photo.uri, photo.crop).catch(() => photo.uri);
-      const file = cropped === photo.uri ? photo : { uri: cropped, name: 'struk.jpg', type: 'image/jpeg' };
+      // Kirim hanya bagian nota, diperkecil agar cepat terkirim. Foto galeri yang tidak dipotong dikirim apa
+      // adanya karena data EXIF-nya (waktu foto, aplikasi edit) ikut diperiksa. Bila gagal diolah, foto utuh tetap terbaca.
+      const keepOriginal = photo.source === 'library' && isFullCrop(photo.crop);
+      const prepared = keepOriginal ? photo.uri : await cropPhoto(photo.uri, photo.crop).catch(() => photo.uri);
+      const file = prepared === photo.uri ? photo : { uri: prepared, name: 'struk.jpg', type: 'image/jpeg' };
       const res = await upload<{ data: ReceiptClaim }>('/me/receipts', file, { field: 'photo' });
-      setClaim(res.data);
+      receiptWatch.track(res.data);
+      setClaimId(res.data.id);
+      haptics.tap();
     } catch (e) {
       haptics.error();
       setError(e instanceof ApiError ? e.message : 'Gagal mengirim struk.');
@@ -158,7 +130,7 @@ function ReceiptCapture({ focused }: { focused: boolean }) {
   }
 
   function reset() {
-    setClaim(null);
+    setClaimId(null);
     setPhoto(null);
     setError(null);
   }
@@ -316,7 +288,7 @@ function CameraStep({
         const size = pic.width > 0 && pic.height > 0 ? pic : await Image.getSize(pic.uri).catch(() => null);
         const crop =
           area && frame && size ? frameCrop(size, area, { x: frame.x - area.x, y: frame.y - area.y, width: frame.width, height: frame.height }) : FULL_CROP;
-        onPhoto({ uri: pic.uri, name: 'struk.jpg', type: 'image/jpeg', crop });
+        onPhoto({ uri: pic.uri, name: 'struk.jpg', type: 'image/jpeg', crop, source: 'camera' });
       }
     } catch {
       setShotError('Foto gagal diambil. Coba lagi, atau pilih dari galeri.');
@@ -461,10 +433,17 @@ function CropStep({
   );
 }
 
-/** Hasil pemeriksaan: sedang dibaca, poin masuk, perlu foto ulang, atau dicek petugas. */
+/**
+ * Hasil pemeriksaan: sedang dibaca, poin masuk, perlu foto ulang, atau dicek petugas. Selama dibaca, member
+ * tidak perlu menunggu: boleh kembali ke Beranda atau kirim struk lain, hasilnya dikabari lewat toast.
+ */
 function ReceiptResult({ claim, onRetake }: { claim: ReceiptClaim; onRetake: () => void }) {
   const approved = claim.status === 'approved';
   const rejected = claim.status === 'rejected';
+  const goHome = () => {
+    onRetake();
+    router.navigate('/');
+  };
 
   // Hasil akhir terasa di tangan: getar sukses saat poin masuk, getar peringatan bila struk ditolak.
   useEffect(() => {
@@ -474,14 +453,14 @@ function ReceiptResult({ claim, onRetake }: { claim: ReceiptClaim; onRetake: () 
   }, [claim.checking, approved, rejected]);
 
   const title = claim.checking
-    ? 'Memeriksa struk…'
+    ? 'Struk terkirim'
     : approved
       ? `+${number(claim.points ?? 0)} poin`
       : rejected
         ? 'Struk belum bisa diproses'
         : 'Struk sedang dicek petugas';
   const text = claim.checking
-    ? 'Biasanya hanya beberapa detik.'
+    ? 'Sistem sedang membaca struknya, biasanya beberapa detik. Tidak perlu menunggu di sini — kami kabari begitu poin masuk.'
     : approved
       ? `Poin dari ${claim.outlet?.name ?? 'struk ini'}${claim.amount != null ? ` (${rupiah(claim.amount)})` : ''} sudah masuk ke akunmu.`
       : rejected
@@ -495,10 +474,7 @@ function ReceiptResult({ claim, onRetake }: { claim: ReceiptClaim; onRetake: () 
           accessibilityRole="button"
           accessibilityLabel="Kembali ke Beranda"
           hitSlop={8}
-          onPress={() => {
-            onRetake();
-            router.navigate('/');
-          }}
+          onPress={goHome}
           style={({ pressed }) => [styles.resultClose, pressed && { opacity: 0.6 }]}>
           <Icon name="close" size={22} color={colors.ink} strokeWidth={2.1} />
         </Pressable>
@@ -525,16 +501,16 @@ function ReceiptResult({ claim, onRetake }: { claim: ReceiptClaim; onRetake: () 
         <Txt size={14} color={colors.muted} style={{ textAlign: 'center', lineHeight: 21 }}>
           {text}
         </Txt>
-        {!claim.checking && (
-          <View style={{ alignSelf: 'stretch', gap: 10, marginTop: 12 }}>
-            {rejected ? (
-              <Button title="Foto ulang" variant="brass" icon="camera" onPress={onRetake} />
-            ) : (
-              <Button title="Lihat riwayat poin" onPress={() => router.push('/points')} />
-            )}
-            <Button title={rejected ? 'Nanti saja' : 'Kirim struk lain'} variant="secondary" onPress={onRetake} />
-          </View>
-        )}
+        <View style={{ alignSelf: 'stretch', gap: 10, marginTop: 12 }}>
+          {claim.checking ? (
+            <Button title="Kembali ke Beranda" onPress={goHome} />
+          ) : rejected ? (
+            <Button title="Foto ulang" variant="brass" icon="camera" onPress={onRetake} />
+          ) : (
+            <Button title="Lihat riwayat poin" onPress={() => router.push('/points')} />
+          )}
+          <Button title={rejected ? 'Nanti saja' : 'Kirim struk lain'} variant="secondary" onPress={onRetake} />
+        </View>
       </View>
     </SafeAreaView>
   );

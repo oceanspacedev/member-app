@@ -13,7 +13,7 @@ type Toast = { id: number; text: string; tone: Tone };
 
 const TOAST_MS = 2600;
 
-const ToastContext = createContext<{ show: (text: string, tone?: Tone) => void } | null>(null);
+const ToastContext = createContext<{ show: (text: string, tone?: Tone, ms?: number) => void } | null>(null);
 
 /**
  * Kabar singkat yang muncul di atas tab bar lalu hilang sendiri ("Kode disalin", "Voucher masuk ke Voucher Saya").
@@ -24,11 +24,12 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const [toast, setToast] = useState<Toast | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const show = useCallback((text: string, tone: Tone = 'info') => {
+  // Pesan yang lebih panjang (mis. alasan struk ditolak) boleh tampil lebih lama.
+  const show = useCallback((text: string, tone: Tone = 'info', ms = TOAST_MS) => {
     if (timer.current) clearTimeout(timer.current);
     setToast({ id: Date.now(), text, tone });
     AccessibilityInfo.announceForAccessibility(text);
-    timer.current = setTimeout(() => setToast(null), TOAST_MS);
+    timer.current = setTimeout(() => setToast(null), ms);
   }, []);
 
   useEffect(
