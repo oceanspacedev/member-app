@@ -76,7 +76,7 @@ export default function VoucherScreen() {
 
           {active && (
             <View style={styles.steps}>
-              {['Tunjukkan ke kasir sebelum membayar: kasir bisa scan QR, scan barcode, atau ketik kodenya.', 'Tagihan langsung terpotong. Satu voucher untuk satu struk.', 'Foto struknya di tab Foto Struk untuk dapat poin.'].map((step, i) => (
+              {steps(voucher).map((step, i) => (
                 <View key={step} style={styles.step}>
                   <View style={styles.stepNo}>
                     <Txt weight="bold" size={12} color={colors.accentInk}>
@@ -100,6 +100,14 @@ export default function VoucherScreen() {
       )}
     </SafeAreaView>
   );
+}
+
+/** Cara pakai di kasir. Kode dari POS outlet hanya dikenali mesin kasir outlet itu. */
+function steps(voucher: Voucher): string[] {
+  const first = voucher.pos_outlet
+    ? `Tunjukkan ke kasir ${voucher.pos_outlet.name} sebelum membayar: kasir memasukkan kode ini di mesin kasir (scan atau ketik).`
+    : 'Tunjukkan ke kasir sebelum membayar: kasir bisa scan QR, scan barcode, atau ketik kodenya.';
+  return [first, 'Tagihan langsung terpotong. Satu voucher untuk satu struk.', 'Foto struknya di tab Foto Struk untuk dapat poin.'];
 }
 
 /** Asal voucher, mis. "Klaim gratis" atau "Tukar 2.500 poin". */

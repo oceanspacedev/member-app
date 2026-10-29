@@ -8,6 +8,7 @@ import type { Voucher } from '@/lib/types';
 import { Txt } from './ui';
 
 export function voucherPlace(voucher: Voucher): string {
+  if (voucher.pos_outlet) return `Hanya di ${voucher.pos_outlet.name}`;
   return voucher.is_universal ? 'Semua outlet' : (voucher.brand?.name ?? 'Brand tertentu');
 }
 

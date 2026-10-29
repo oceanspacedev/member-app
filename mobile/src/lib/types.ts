@@ -117,6 +117,8 @@ export type Voucher = {
   paid_amount: number;
   brand: Brand | null;
   is_universal: boolean;
+  /** Kode dibuat di POS outlet ini: hanya kasir outlet ini yang bisa memakainya (lewat mesin kasirnya). */
+  pos_outlet?: { id: number; name: string } | null;
   terms: string | null;
   image_url: string | null;
   expires_at: string;
